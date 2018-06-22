@@ -334,5 +334,27 @@ namespace FameDocumentUploaderSvc
 
         }
 
+        //Toggles the FileSystemWatcher monitoring
+        public static void ToggleMonitoring(bool status, FileSystemWatcher fameWatcher)
+        {
+
+            if (status)
+            {
+                fameWatcher.EnableRaisingEvents = status;
+                LogEvent("FAME upload monitoring has successfully started", EventLogEntryType.Information);
+                WriteFameLog(" - FAME upload monitoring has successfully started");
+
+            }
+            else
+            {
+
+                fameWatcher.EnableRaisingEvents = status;
+                LogEvent("FAME upload monitoring has been stopped", EventLogEntryType.Warning);
+                WriteFameLog(" - FAME upload monitoring has been stopped.  No files will be uploaded until it has been restarted.");
+
+            }
+
+        }
+
     }
 }

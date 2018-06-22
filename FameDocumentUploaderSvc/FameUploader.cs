@@ -7,36 +7,14 @@ using System.IO;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Timers;
 
 namespace FameDocumentUploaderSvc
 {
     public partial class FameUploader : ServiceBase
     {
-        public static FileSystemWatcher fameWatcher = new FileSystemWatcher(FameLibrary.cfgWatchDir);
-
-        //Toggles the FileSystemWatcher monitoring
-        public static void ToggleMonitoring(bool status)
-        {
-
-            if (status)
-            {
-                fameWatcher.EnableRaisingEvents = status;
-                FameLibrary.LogEvent("FAME upload monitoring has successfully started", EventLogEntryType.Information);
-                FameLibrary.WriteFameLog(" - FAME upload monitoring has successfully started");
-
-            }
-            else
-            {
-
-                fameWatcher.EnableRaisingEvents = status;
-                FameLibrary.LogEvent("FAME upload monitoring has been stopped", EventLogEntryType.Warning);
-                FameLibrary.WriteFameLog(" - FAME upload monitoring has been stopped.  No files will be uploaded until it has been restarted.");
-
-            }
-
-        }
+        public FileSystemWatcher fameWatcher = new FileSystemWatcher(FameLibrary.cfgWatchDir);
+        private Timer workerTimer = null;
 
         public FameUploader()
         {
@@ -44,28 +22,37 @@ namespace FameDocumentUploaderSvc
             InitializeComponent();
         }
 
+        //Actions performed when timer elapses.
+        private void WorkerTimer_Tick(object sender, ElapsedEventArgs e)
+        {
+            //Currently does nothing, but we could add emailing here if conditions are met for hourly/daily mailings
+        }
+
         protected override void OnStart(string[] args)
         {
 
-
-        //Create and start new thread for timer to allow program to wait for incoming files
-        Thread timerThread = new Thread(new ThreadStart(FameLibrary.ExecuteWorkerThread));
-            timerThread.Start();
+            //Create and start our timer
+            workerTimer = new Timer();
+            this.workerTimer.Interval = 30000;
+            this.workerTimer.Elapsed += new System.Timers.ElapsedEventHandler(this.WorkerTimer_Tick);
+            workerTimer.Enabled = true;
 
             //Register the different types of file system events to listen for, Created, Changed, Renamed, Deleted
             //This launches the onChanged method we defined above.
             fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnChanged);
 
             //This begins the actual file monitoring
-            ToggleMonitoring(true);
+            FameLibrary.ToggleMonitoring(true, fameWatcher);
 
         }
 
         protected override void OnStop()
         {
             //Stop the file monitoring
-            ToggleMonitoring(false);
+            FameLibrary.ToggleMonitoring(false, fameWatcher);
 
+            //Stop the timer thread
+            workerTimer.Enabled = false;
         }
     }
 }
