@@ -1,6 +1,6 @@
 ﻿namespace FameDocumentUploaderSvc
 {
-    partial class Service1
+    partial class FameUploader
     {
         /// <summary> 
         /// Required designer variable.
