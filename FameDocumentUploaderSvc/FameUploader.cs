@@ -14,6 +14,8 @@ namespace FameDocumentUploaderSvc
 {
     public partial class FameUploader : ServiceBase
     {
+        public static FileSystemWatcher fameWatcher = new FileSystemWatcher(FameLibrary.cfgWatchDir);
+
         //Toggles the FileSystemWatcher monitoring
         public static void ToggleMonitoring(bool status)
         {
@@ -21,16 +23,16 @@ namespace FameDocumentUploaderSvc
             if (status)
             {
                 fameWatcher.EnableRaisingEvents = status;
-                LogEvent("FAME upload monitoring has successfully started", EventLogEntryType.Information);
-                WriteFameLog(" - FAME upload monitoring has successfully started");
+                FameLibrary.LogEvent("FAME upload monitoring has successfully started", EventLogEntryType.Information);
+                FameLibrary.WriteFameLog(" - FAME upload monitoring has successfully started");
 
             }
             else
             {
 
                 fameWatcher.EnableRaisingEvents = status;
-                LogEvent("FAME upload monitoring has been stopped", EventLogEntryType.Warning);
-                WriteFameLog(" - FAME upload monitoring has been stopped.  No files will be uploaded until it has been restarted.");
+                FameLibrary.LogEvent("FAME upload monitoring has been stopped", EventLogEntryType.Warning);
+                FameLibrary.WriteFameLog(" - FAME upload monitoring has been stopped.  No files will be uploaded until it has been restarted.");
 
             }
 
