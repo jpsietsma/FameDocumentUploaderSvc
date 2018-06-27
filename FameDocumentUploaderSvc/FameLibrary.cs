@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Net.Mail;
 
 namespace FameDocumentUploaderSvc
 {
@@ -24,6 +26,7 @@ namespace FameDocumentUploaderSvc
 
         //Directory path to monitor for uploads
         public const string cfgWatchDir = @"E:\projects\fame uploads\upload_drop";
+        public static string wacDocUploader;
 
         public static bool runWorker = true;
         public static string connectionString = $"Server='{cfgSQLServer}';"
@@ -41,7 +44,7 @@ namespace FameDocumentUploaderSvc
             string wacDocType = nameParts[0];
             string wacFarmID = nameParts[1];
 
-            string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
+            string wacFarmHome = Configuration.wacFarmHome;
             string fileSubPath = null;
             string finalFilePath = null;
 
@@ -77,8 +80,6 @@ namespace FameDocumentUploaderSvc
                         WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                         LogEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
 
-                        Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                        Console.WriteLine(' ');
                         break;
                     }
 
@@ -92,8 +93,6 @@ namespace FameDocumentUploaderSvc
                         WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                         LogEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
 
-                        Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                        Console.WriteLine(' ');
                         break;
                     }
 
@@ -109,8 +108,6 @@ namespace FameDocumentUploaderSvc
                         WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                         LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
 
-                        Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                        Console.WriteLine(' ');
                         break;
                     }
 
@@ -139,13 +136,30 @@ namespace FameDocumentUploaderSvc
                         LogEvent("Invalid Document Type: " + nameParts[0] + ". " + nameParts[1] + " was NOT uploaded", EventLogEntryType.Error);
                         WriteFameLog(e, "error", "invalidDocType");
 
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Invalid Document Type: {0} has been detected.  Document WILL NOT be uploaded", nameParts[0]);
-                        Console.WriteLine(' ');
-                        Console.ResetColor();
                         break;
                     }
 
+            }
+
+            //Compare security logs to file drop name and time and pull file uploader from Windows Security event logs
+            if (EventLog.SourceExists("Security"))
+            {
+                EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
+
+
+                foreach (EventLogEntry entry in log.Entries)
+                {
+                    if (entry.Message.Contains(@"E:\Projects\fame uploads\upload_drop") && entry.Message.Contains("0x80") && !entry.Message.Contains("desktop.ini"))
+                    {
+                        wacDocUploader = FameLibrary.GetUploadUserName(entry.Message, e.Name);
+                    }
+
+                }
+            }
+            else
+            {
+                WriteFameLog("Specified event source: 'security' does not exist");
+                LogEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
             }
 
             //Check if file has valid farm ID and document type
@@ -166,7 +180,7 @@ namespace FameDocumentUploaderSvc
 
                             + "VALUES("
 
-                            + $" '{finalFilePath}', '{docFileName}', '{wacDocType}', '{wacFarmID}', 'fameAutomation', '{docUploadTime}', '{docFileSize}'"
+                            + $" '{finalFilePath}', '{docFileName}', '{wacDocType}', '{wacFarmID}', '{wacDocUploader}', '{docUploadTime}', '{docFileSize}'"
 
                             + ");";
 
@@ -176,14 +190,8 @@ namespace FameDocumentUploaderSvc
                     }
                     catch (Exception ex)
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Oh, there was a problem! Exception: ");
-                        Console.WriteLine(' ');
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine(' ');
-                        Console.WriteLine(ex.InnerException);
                         LogEvent(ex.Message, EventLogEntryType.Error);
-                        Console.ResetColor();
+                        WriteFameLog("error", "An error occurred connecting to the database.  Check the event logs for more details.");
                     }
                 }
             }
@@ -334,6 +342,34 @@ namespace FameDocumentUploaderSvc
 
         }
 
+        //Writes to specified FAME log, supplied message
+        public static void WriteFameLog(string logType, string msg)
+        {
+            string message = DateTime.Now.ToString(@"HH:mm:sstt - ");
+            string logTypePath = null;
+
+            message += msg;
+
+            CheckLogFiles(logType);
+
+            switch (logType)
+            {
+
+                case "error": {
+
+                        logTypePath = FameLibrary.errorLogPath;
+
+                        break;
+                    }
+            }
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(logTypePath, true))
+            {
+                file.WriteLine(message);
+            }
+
+        }
+
         //Toggles the FileSystemWatcher monitoring
         public static void ToggleMonitoring(bool status, FileSystemWatcher fameWatcher)
         {
@@ -354,6 +390,52 @@ namespace FameDocumentUploaderSvc
 
             }
 
+        }
+
+        //When passed an event log entry and a filename, determines the uploader of the file by checking Windows Security event log entries
+        public static string GetUploadUserName(string message, string fileName)
+        {
+            string finalUserName = message;
+            string finalUserDomain = @"WAC\";
+
+            Regex regexPattern = new Regex(@"Account Name:\s*(?<userName>.*)\n");
+            Match match = regexPattern.Match(message);
+
+            string finalMessage = finalUserDomain + match.Groups["userName"];
+
+            return finalMessage;
+        }
+
+        //Sends a notification email to uploader when a duplicate file upload is attempted
+        public static bool SendDuplicateFileNotify(string fileName, string uploader)
+        {
+            bool sendSuccess = true;
+            string mailRecipient = uploader.Split('\\')[1] + "@nycwatershed.org";
+
+            SmtpClient smtp = new SmtpClient(Configuration.SmtpHost);
+            MailMessage messageObj = new MailMessage();
+
+            //code to build and send email to recipient
+            messageObj.To.Add(mailRecipient);
+            messageObj.Sender = new MailAddress(Configuration.smtpUserEmail);
+            messageObj.IsBodyHtml = true;
+            messageObj.Attachments.Add(new Attachment(fileName));
+            messageObj.Subject = "Duplicate Document: " + fileName;
+            messageObj.Body = @" <b>You have attempted to upload a file which has previously been uploaded to FAME.  Please remove the original file and then attempt to upload your new file again.</b>";
+
+            try
+            {
+                smtp.Send(messageObj);
+            }
+            catch (SmtpFailedRecipientException ex)
+            {
+                //Log an event to the Windows Event log for the document uploader with the exception
+                LogEvent("Error delivering duplicate file upload email: " + ex, EventLogEntryType.Error);
+                WriteFameLog("error", " Error sending duplicate file notification email to '" + uploader + "'. See event log for details.");
+                sendSuccess = false;
+            }
+
+            return sendSuccess;
         }
 
     }

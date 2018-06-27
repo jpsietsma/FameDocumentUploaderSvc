@@ -41,6 +41,7 @@
             // 
             this.serviceInstaller1.Description = "Monitors and uploads documents to the WAC FAME intranet.";
             this.serviceInstaller1.ServiceName = "Fame Document Uploader";
+            this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // ProjectInstaller
             // 
