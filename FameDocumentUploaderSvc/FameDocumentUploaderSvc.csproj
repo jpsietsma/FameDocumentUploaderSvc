@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration.cs" />
     <Compile Include="FameLibrary.cs" />
     <Compile Include="FameUploader.cs">
       <SubType>Component</SubType>
