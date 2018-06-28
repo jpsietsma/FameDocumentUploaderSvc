@@ -11,10 +11,11 @@ namespace FameDocumentUploaderSvc
 
 #region ########## Email Configuration Section ########## 
 
-        public const string SmtpHost = @"stmp.gmail.com";
+        public const string smtpHost = @"stmp.gmail.com";
         public const string smtpUserEmail = @"<FAME Document Uploader> jpsietsma@gmail.com";
         public const string smtpUser = "jpsietsma";
-        public const string smtpPass = @"A112@lop^6";
+        public const string smtpPass = @"A!12@lop^6";
+        public const int smtpPort = 587;
 
 #endregion
 

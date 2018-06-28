@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Mail;
+using System.Net;
 
 namespace FameDocumentUploaderSvc
 {
@@ -407,21 +408,36 @@ namespace FameDocumentUploaderSvc
         }
 
         //Sends a notification email to uploader when a duplicate file upload is attempted
-        public static bool SendDuplicateFileNotify(string fileName, string uploader)
+        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string username = @"jpsietsma@gmail.com")
         {
             bool sendSuccess = true;
-            string mailRecipient = uploader.Split('\\')[1] + "@nycwatershed.org";
+            string mailRecipient = @"jpsietsma@gmail.com";
 
-            SmtpClient smtp = new SmtpClient(Configuration.SmtpHost);
+            SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort);
+            smtp.UseDefaultCredentials = false;
+            smtp.Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass);
+            smtp.Host = Configuration.smtpHost;
+            smtp.EnableSsl = true;
+            smtp.Port = Configuration.smtpPort;
+
             MailMessage messageObj = new MailMessage();
 
             //code to build and send email to recipient
             messageObj.To.Add(mailRecipient);
-            messageObj.Sender = new MailAddress(Configuration.smtpUserEmail);
+            messageObj.From = new MailAddress(Configuration.smtpUserEmail);
             messageObj.IsBodyHtml = true;
-            messageObj.Attachments.Add(new Attachment(fileName));
-            messageObj.Subject = "Duplicate Document: " + fileName;
-            messageObj.Body = @" <b>You have attempted to upload a file which has previously been uploaded to FAME.  Please remove the original file and then attempt to upload your new file again.</b>";
+            messageObj.Subject = "SDN Media Watcher: " + arg.Name + " added to SORT drive";
+            messageObj.Body = "<html>"
+                            + "<body>"
+                            + "<center>"
+                            + "<div style='margin: 0 auto 0;'>"
+                            + "<img style='width: 800px; height: 150px;'src='https://www.nycwatershed.org/wp-content/uploads/2015/10/waclogowebsite.jpg'>"
+                            + "</div>"
+                            + "<br><br>"
+                            + "<b>" + arg.Name + " has been added to SORT drive.  SDN media watcher will begin processing the file."
+                                                        + "</center>"
+                            + "</body>"
+                            + "</html>";
 
             try
             {
@@ -429,9 +445,24 @@ namespace FameDocumentUploaderSvc
             }
             catch (SmtpFailedRecipientException ex)
             {
-                //Log an event to the Windows Event log for the document uploader with the exception
-                LogEvent("Error delivering duplicate file upload email: " + ex, EventLogEntryType.Error);
-                WriteFameLog("error", " Error sending duplicate file notification email to '" + uploader + "'. See event log for details.");
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.WriteLine();
+                Console.ResetColor();
+
+                //Return false if message failed to send
+                sendSuccess = false;
+            }
+            catch (SmtpException ex)
+            {
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.WriteLine();
+                Console.ResetColor();
+
+                //Return false if message failed to send
                 sendSuccess = false;
             }
 
