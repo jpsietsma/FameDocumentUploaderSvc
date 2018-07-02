@@ -411,7 +411,7 @@ namespace FameDocumentUploaderSvc
         public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string username = @"jpsietsma@gmail.com")
         {
             bool sendSuccess = true;
-            string mailRecipient = @"jpsietsma@gmail.com";
+            string mailRecipient = @"jsietsma@nycwatershed.org";
 
             SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort);
             smtp.UseDefaultCredentials = false;
@@ -426,7 +426,7 @@ namespace FameDocumentUploaderSvc
             messageObj.To.Add(mailRecipient);
             messageObj.From = new MailAddress(Configuration.smtpUserEmail);
             messageObj.IsBodyHtml = true;
-            messageObj.Subject = "SDN Media Watcher: " + arg.Name + " added to SORT drive";
+            messageObj.Subject = "FAME Uploader: " + arg.Name;
             messageObj.Body = "<html>"
                             + "<body>"
                             + "<center>"
@@ -434,8 +434,8 @@ namespace FameDocumentUploaderSvc
                             + "<img style='width: 800px; height: 150px;'src='https://www.nycwatershed.org/wp-content/uploads/2015/10/waclogowebsite.jpg'>"
                             + "</div>"
                             + "<br><br>"
-                            + "<b>" + arg.Name + " has been added to SORT drive.  SDN media watcher will begin processing the file."
-                                                        + "</center>"
+                            + "<b>" + arg.Name + " has been uploaded to FAME.  Document has been successfully added.</b>"
+                            + "</center>"
                             + "</body>"
                             + "</html>";
 
@@ -447,7 +447,7 @@ namespace FameDocumentUploaderSvc
             {
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.InnerException);
                 Console.WriteLine();
                 Console.ResetColor();
 
@@ -458,7 +458,7 @@ namespace FameDocumentUploaderSvc
             {
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.InnerException);
                 Console.WriteLine();
                 Console.ResetColor();
 
