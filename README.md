@@ -8,6 +8,5 @@
 - Files dropped are then logged to the SQL table successfully!
 
 Still need to:
-- Get file uploader from security logs
 - Do permissions checking on user to ensure appropriate ability
 - Add in daily/hourly (whichever) Upload Report email feature
