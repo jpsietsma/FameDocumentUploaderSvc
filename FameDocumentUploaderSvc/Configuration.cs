@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FameDocumentUploaderSvc
 {
-    class Configuration
+    public class Configuration
     {
 
 #region ########## Email Configuration Section ########## 

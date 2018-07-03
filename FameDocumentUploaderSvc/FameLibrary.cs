@@ -408,7 +408,7 @@ namespace FameDocumentUploaderSvc
         }
 
         //Sends a notification email to uploader when a duplicate file upload is attempted
-        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string username = @"jpsietsma@gmail.com")
+        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, string username = @"jpsietsma@gmail.com")
         {
             bool sendSuccess = true;
             string mailRecipient = @"jsietsma@nycwatershed.org";
@@ -427,17 +427,7 @@ namespace FameDocumentUploaderSvc
             messageObj.From = new MailAddress(Configuration.smtpUserEmail);
             messageObj.IsBodyHtml = true;
             messageObj.Subject = "FAME Uploader: " + arg.Name;
-            messageObj.Body = "<html>"
-                            + "<body>"
-                            + "<center>"
-                            + "<div style='margin: 0 auto 0;'>"
-                            + "<img style='width: 800px; height: 150px;'src='https://www.nycwatershed.org/wp-content/uploads/2015/10/waclogowebsite.jpg'>"
-                            + "</div>"
-                            + "<br><br>"
-                            + "<b>" + arg.Name + " has been uploaded to FAME.  Document has been successfully added.</b>"
-                            + "</center>"
-                            + "</body>"
-                            + "</html>";
+            messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime);
 
             try
             {
@@ -467,6 +457,99 @@ namespace FameDocumentUploaderSvc
             }
 
             return sendSuccess;
+        }
+
+        public static string CreateEmailBody(FileSystemEventArgs args, string uFinalPath, DateTime uDocUploadTime, string mailType = "single")
+        {
+            string emailTemplate = mailType;
+            string farmID = "ITTEST-001";
+
+            uFinalPath = uFinalPath.Replace(@"E:\Projects\fame uploads\", @"J:\");
+
+            string body = string.Empty;
+
+            switch (mailType)
+            {
+                case "single":
+                    {
+
+                        using (StreamReader reader = new StreamReader("../../EmailSingleTemplate.html"))
+                        {
+                            body = reader.ReadToEnd();
+
+                            body = body.Replace("~FarmID~", farmID);
+                            body = body.Replace("~FileName~", args.Name);
+                            body = body.Replace("~DestinationURL~", uFinalPath);
+                            body = body.Replace("~uDocUploadTime~", uDocUploadTime.ToString());
+
+                        }
+
+                        break;
+
+                    }
+
+                case "summary":
+                    {
+
+                        using (StreamReader reader = new StreamReader("../../EmailSummaryTemplate.html"))
+                        {
+
+                            body = reader.ReadToEnd();
+
+                        }
+
+                        break;
+
+                    }
+
+                case "duplicate":
+                    {
+
+                        using (StreamReader reader = new StreamReader("../../EmailDuplicateTemplate.html"))
+                        {
+                            body = reader.ReadToEnd();
+
+                            body = body.Replace("~FileName~", args.Name);
+                            body = body.Replace("~DestinationURL~", uFinalPath);
+                            body = body.Replace("~uDocUploadTime~", uDocUploadTime.ToString());
+
+                        }
+
+                        break;
+
+                    }
+            }
+
+            return body;
+
+        }
+
+        //formats WAC\user to valid email address format for notifications on drops or to add to mailqueue table
+        public string BuildEmail(string username)
+        {
+            string finalEmail = string.Empty;
+
+            string userDomain = username.Split('\\')[0];
+            string userUser = username.Split('\\')[1];
+
+            switch (userDomain)
+            {
+                case "WAC":
+                {
+
+                    finalEmail = userUser + "@nycwatershed.org";
+                    break;
+
+                }
+
+                default: 
+                {
+          
+                    break;
+
+                }
+            }
+
         }
 
     }
