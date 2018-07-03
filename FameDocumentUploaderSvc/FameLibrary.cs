@@ -525,32 +525,27 @@ namespace FameDocumentUploaderSvc
         }
 
         //formats WAC\user to valid email address format for notifications on drops or to add to mailqueue table
-        public string BuildEmail(string username)
+        public static string BuildEmail(string username)
         {
-            string finalEmail = string.Empty;
+            string finalEmail;
 
             string userDomain = username.Split('\\')[0];
             string userUser = username.Split('\\')[1];
 
             switch (userDomain)
             {
-                case "WAC":
+                default:
                 {
 
                     finalEmail = userUser + "@nycwatershed.org";
                     break;
 
                 }
-
-                default: 
-                {
-          
-                    break;
-
-                }
             }
 
+            return finalEmail;
         }
+
 
     }
 }
