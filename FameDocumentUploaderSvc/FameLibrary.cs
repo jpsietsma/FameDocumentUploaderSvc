@@ -13,27 +13,7 @@ namespace FameDocumentUploaderSvc
 {
     public static class FameLibrary
     {
-        //Log file paths
-        public static string errorLogPath = @"E:\projects\fame uploads\logs\error-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
-        public static string transferLogPath = @"E:\projects\fame uploads\logs\transfer-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log";
-        public static string sysLogPath = @"E:\projects\fame uploads\logs\system-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log";
-
-        //SQL configuration details
-        public const string cfgSQLServer = @"POTOKTEST";
-        public const string cfgSQLDatabase = "wacTest";
-        public const string cfgSQLUsername = "sa";
-        public const string cfgSQLPassword = "WacAttack9";
-        public const string cfgSQLTable = "testFameUploads";
-
-        //Directory path to monitor for uploads
-        public const string cfgWatchDir = @"E:\projects\fame uploads\upload_drop";
         public static string wacDocUploader;
-
-        public static bool runWorker = true;
-        public static string connectionString = $"Server='{cfgSQLServer}';"
-                                              + $"Database='{cfgSQLDatabase}';"
-                                              + $"User Id='{cfgSQLUsername}';"
-                                              + $"Password='{cfgSQLPassword}';";
 
         //Called when a File Creation is detected
         public static void OnChanged(object source, FileSystemEventArgs e)
@@ -152,7 +132,8 @@ namespace FameDocumentUploaderSvc
                 {
                     if (entry.Message.Contains(@"E:\Projects\fame uploads\upload_drop") && entry.Message.Contains("0x80") && !entry.Message.Contains("desktop.ini"))
                     {
-                        wacDocUploader = FameLibrary.GetUploadUserName(entry.Message, e.Name);
+                        wacDocUploader = GetUploadUserName(entry.Message, e.Name);
+
                     }
 
                 }
@@ -167,7 +148,7 @@ namespace FameDocumentUploaderSvc
             //If user drops a valid document type, then add it to database
             if (validWACFarmID && validWACDocType)
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(Configuration.connectionString))
                 {
                     try
                     {
@@ -175,7 +156,7 @@ namespace FameDocumentUploaderSvc
                         int queryResult;
                         string queryString = "INSERT INTO "
 
-                            + cfgSQLDatabase + ".dbo." + cfgSQLTable
+                            + Configuration.cfgSQLDatabase + ".dbo." + Configuration.cfgSQLTable
 
                             + "([fileDirectoryPath], [fileName], [fk_fileType], [fk_fileFarmID], [fk_fileUploader], [fileTimestamp], [fileSize]) "
 
@@ -203,9 +184,9 @@ namespace FameDocumentUploaderSvc
         {
             if (logType == "error")
             {
-                if (!File.Exists(errorLogPath))
+                if (!File.Exists(Configuration.errorLogPath))
                 {
-                    using (FileStream fs = File.Create(errorLogPath))
+                    using (FileStream fs = File.Create(Configuration.errorLogPath))
                     {
                         LogEvent(DateTime.Now.ToString() + " - Daily Error Log Does not exist, the file has been created", EventLogEntryType.Warning);
                     }
@@ -214,9 +195,9 @@ namespace FameDocumentUploaderSvc
 
             if (logType == "transfer")
             {
-                if (!File.Exists(transferLogPath))
+                if (!File.Exists(Configuration.transferLogPath))
                 {
-                    using (FileStream fs = File.Create(transferLogPath))
+                    using (FileStream fs = File.Create(Configuration.transferLogPath))
                     {
                         LogEvent(DateTime.Now.ToString() + " - Daily transfer Log Does not exist, the file has been created.", EventLogEntryType.Warning);
                     }
@@ -225,9 +206,9 @@ namespace FameDocumentUploaderSvc
 
             if (logType == "system")
             {
-                if (!File.Exists(sysLogPath))
+                if (!File.Exists(Configuration.sysLogPath))
                 {
-                    using (FileStream fs = File.Create(sysLogPath))
+                    using (FileStream fs = File.Create(Configuration.sysLogPath))
                     {
                         LogEvent(DateTime.Now.ToString() + " - Daily System Log Does not exist, the file has been created.", EventLogEntryType.Warning);
                     }
@@ -284,7 +265,7 @@ namespace FameDocumentUploaderSvc
 
                         if (errSub == "invalidFarmID")
                         {
-                            using (System.IO.StreamWriter file = new System.IO.StreamWriter(errorLogPath, true))
+                            using (StreamWriter file = new StreamWriter(Configuration.errorLogPath, true))
                             {
                                 message += "Invalid Farm ID - " + (arg.Name).Split('_')[1] + " - upload cancelled.";
                                 file.WriteLine(message);
@@ -293,7 +274,7 @@ namespace FameDocumentUploaderSvc
                         }
                         else if (errSub == "invalidDocType")
                         {
-                            using (System.IO.StreamWriter file = new System.IO.StreamWriter(errorLogPath, true))
+                            using (StreamWriter file = new StreamWriter(Configuration.errorLogPath, true))
                             {
                                 message += "Invalid Document Type - " + (arg.Name).Split('_')[0] + " - upload cancelled.";
                                 file.WriteLine(message);
@@ -306,7 +287,7 @@ namespace FameDocumentUploaderSvc
                     {
                         CheckLogFiles("transfer");
 
-                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(transferLogPath, true))
+                        using (StreamWriter file = new StreamWriter(Configuration.transferLogPath, true))
                         {
                             message += addmsg;
                             file.WriteLine(message);
@@ -318,7 +299,7 @@ namespace FameDocumentUploaderSvc
                     {
                         CheckLogFiles("system");
 
-                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(sysLogPath, true))
+                        using (StreamWriter file = new StreamWriter(Configuration.sysLogPath, true))
                         {
                             message += addmsg;
                             file.WriteLine(message);
@@ -336,7 +317,7 @@ namespace FameDocumentUploaderSvc
             message += msg;
 
             CheckLogFiles("system");
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(sysLogPath, true))
+            using (StreamWriter file = new StreamWriter(Configuration.sysLogPath, true))
             {
                 file.WriteLine(message);
             }
@@ -358,7 +339,7 @@ namespace FameDocumentUploaderSvc
 
                 case "error": {
 
-                        logTypePath = FameLibrary.errorLogPath;
+                        logTypePath = Configuration.errorLogPath;
 
                         break;
                     }
@@ -408,26 +389,30 @@ namespace FameDocumentUploaderSvc
         }
 
         //Sends a notification email to uploader when a duplicate file upload is attempted
-        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, string username = @"jpsietsma@gmail.com")
+        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
         {
             bool sendSuccess = true;
-            string mailRecipient = @"jsietsma@nycwatershed.org";
+            string mailRecipient = username;
+
+            
 
             SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort);
             smtp.UseDefaultCredentials = false;
             smtp.Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass);
             smtp.Host = Configuration.smtpHost;
-            smtp.EnableSsl = true;
+            smtp.EnableSsl = false;
             smtp.Port = Configuration.smtpPort;
 
             MailMessage messageObj = new MailMessage();
 
             //code to build and send email to recipient
             messageObj.To.Add(mailRecipient);
+            //messageObj.CC.Add(new MailAddress("jjackson@nycwatershed.org"));
+            messageObj.Bcc.Add(new MailAddress("jsietsma@nycwatershed.org"));
             messageObj.From = new MailAddress(Configuration.smtpUserEmail);
             messageObj.IsBodyHtml = true;
-            messageObj.Subject = "FAME Uploader: " + arg.Name;
-            messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime);
+            messageObj.Subject = "Document Added: " + arg.Name;
+            messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime, mailType);
 
             try
             {
@@ -459,12 +444,13 @@ namespace FameDocumentUploaderSvc
             return sendSuccess;
         }
 
+        //Build the email body with placeholders for data, defined by type of mailing 'single', 'summary', or 'duplicate'
         public static string CreateEmailBody(FileSystemEventArgs args, string uFinalPath, DateTime uDocUploadTime, string mailType = "single")
         {
             string emailTemplate = mailType;
-            string farmID = "ITTEST-001";
+            string farmID = args.Name.Split('_')[1];
 
-            uFinalPath = uFinalPath.Replace(@"E:\Projects\fame uploads\", @"J:\");
+            uFinalPath = uFinalPath.Replace(@"E:\Projects\fame uploads\Farms\" + farmID + "\\", "");
 
             string body = string.Empty;
 

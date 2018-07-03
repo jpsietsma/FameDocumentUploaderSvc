@@ -13,7 +13,7 @@ namespace FameDocumentUploaderSvc
 {
     public partial class FameUploader : ServiceBase
     {
-        public FileSystemWatcher fameWatcher = new FileSystemWatcher(FameLibrary.cfgWatchDir);
+        public FileSystemWatcher fameWatcher = new FileSystemWatcher(Configuration.cfgWatchDir);
         private Timer workerTimer = null;
 
         public FameUploader()

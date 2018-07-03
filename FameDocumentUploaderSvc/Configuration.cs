@@ -11,10 +11,10 @@ namespace FameDocumentUploaderSvc
 
 #region ########## Email Configuration Section ########## 
 
-        public const string smtpHost = @"smtp.gmail.com";
-        public const string smtpUserEmail = @"FAME Document Uploader jpsietsma@gmail.com";
-        public const string smtpUser = "jpsietsma";
-        public const string smtpPass = @"A!12@lop^6";
+        public const string smtpHost = @"walton.nycwatershed.org";
+        public const string smtpUserEmail = @"<FAME Document Uploader> famedocs@nycwatershed.org";
+        public const string smtpUser = "famedocs";
+        public const string smtpPass = @"Potok4";
         public const int smtpPort = 587;
 
 #endregion
@@ -34,13 +34,6 @@ namespace FameDocumentUploaderSvc
 
 #endregion
 
-#region ########## SystemFileWatcher Configuration Section ##########
-
-        //Directory path to monitor for uploads
-        public const string cfgWatchDir = @"E:\projects\fame uploads\upload_drop";
-
-#endregion
-
 #region ########## Log File Configuration Section ##########
 
         public static string errorLogPath = @"E:\projects\fame uploads\logs\error-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
@@ -52,9 +45,10 @@ namespace FameDocumentUploaderSvc
 #region ########## Program Configuration Section ##########
 
         public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
-        public const string uploadWatch = @"E:\Projects\fame uploads\upload_drop";
+        public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
 
 
 #endregion
+
     }
 }
