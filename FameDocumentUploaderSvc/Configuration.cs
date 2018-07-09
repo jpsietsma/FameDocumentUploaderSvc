@@ -47,8 +47,15 @@ namespace FameDocumentUploaderSvc
         public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
         public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
 
+        #endregion
+
+#region ########## LDAP Configuration Settings ##########
+
+        public const string cfgLDAPServer = @"walton01.wac.local:389";
+        public const string cfgLDAPSam = @"WAC\famedocs";
+        public const string cfgLDAPUser = @"famedocs";
+        public const string cfgLDAPPass = @"Potok4";
 
 #endregion
-
     }
 }

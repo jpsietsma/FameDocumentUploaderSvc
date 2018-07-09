@@ -34,7 +34,7 @@ namespace FameDocumentUploaderSvc
             //Create and start our timer
             workerTimer = new Timer();
             this.workerTimer.Interval = 30000;
-            this.workerTimer.Elapsed += new System.Timers.ElapsedEventHandler(this.WorkerTimer_Tick);
+            this.workerTimer.Elapsed += new ElapsedEventHandler(this.WorkerTimer_Tick);
             workerTimer.Enabled = true;
 
             //Register the different types of file system events to listen for, Created, Changed, Renamed, Deleted

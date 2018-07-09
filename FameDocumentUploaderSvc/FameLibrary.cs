@@ -8,6 +8,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net.Mail;
 using System.Net;
+using System.DirectoryServices;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace FameDocumentUploaderSvc
 {
@@ -126,7 +129,6 @@ namespace FameDocumentUploaderSvc
             if (EventLog.SourceExists("Security"))
             {
                 EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
-
 
                 foreach (EventLogEntry entry in log.Entries)
                 {
@@ -385,6 +387,8 @@ namespace FameDocumentUploaderSvc
 
             string finalMessage = finalUserDomain + match.Groups["userName"];
 
+            finalMessage = GetADEmail(finalMessage);
+
             return finalMessage;
         }
 
@@ -393,9 +397,7 @@ namespace FameDocumentUploaderSvc
         {
             bool sendSuccess = true;
             string mailRecipient = username;
-
-            
-
+           
             SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort);
             smtp.UseDefaultCredentials = false;
             smtp.Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass);
@@ -407,7 +409,6 @@ namespace FameDocumentUploaderSvc
 
             //code to build and send email to recipient
             messageObj.To.Add(mailRecipient);
-            //messageObj.CC.Add(new MailAddress("jjackson@nycwatershed.org"));
             messageObj.Bcc.Add(new MailAddress("jsietsma@nycwatershed.org"));
             messageObj.From = new MailAddress(Configuration.smtpUserEmail);
             messageObj.IsBodyHtml = true;
@@ -511,27 +512,42 @@ namespace FameDocumentUploaderSvc
         }
 
         //formats WAC\user to valid email address format for notifications on drops or to add to mailqueue table
-        public static string BuildEmail(string username)
+        public static string GetADEmail(string uUserName)
         {
-            string finalEmail;
+            uUserName = uUserName.Split('\\')[1];
 
-            string userDomain = username.Split('\\')[0];
-            string userUser = username.Split('\\')[1];
+            string finalEmail = null;
 
-            switch (userDomain)
+            // Connect to our LDAP server
+            DirectoryEntry dEntry = new DirectoryEntry("LDAP://" + Configuration.cfgLDAPServer, Configuration.cfgLDAPUser, Configuration.cfgLDAPPass);
+            DirectorySearcher search = new DirectorySearcher(dEntry);
+
+            // specify the search filter
+            search.Filter = "(&(objectClass=user)(SamAccountName=" + uUserName + "))";
+
+            // specify which property values to return in the search
+
+            search.PropertiesToLoad.Add("mail");        // smtp mail address
+
+            // perform the search
+            SearchResult result = search.FindOne();
+
+            try
             {
-                default:
-                {
-
-                    finalEmail = userUser + "@nycwatershed.org";
-                    break;
-
-                }
+                finalEmail = result.Properties["mail"].ToString();
+            }
+            catch(Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine("------------------------");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("------------------------");
+                Console.ResetColor();
             }
 
             return finalEmail;
-        }
 
+        }
 
     }
 }
