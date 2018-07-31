@@ -9,7 +9,6 @@ using System.Net.Mail;
 using System.Net;
 using System.DirectoryServices;
 
-
 namespace FameDocumentUploaderSvc
 {
     public static class FameLibrary
@@ -95,7 +94,7 @@ namespace FameDocumentUploaderSvc
 
                 case "AEM":
                 case "ALTR":
-                case "CERTILIAB":
+                case "CERTLIAB":
                 case "COS":
                 case "CRP1":
                 case "FPD":
@@ -509,7 +508,7 @@ namespace FameDocumentUploaderSvc
 
         }
 
-        //formats WAC\user to valid email address format for notifications on drops or to add to mailqueue table
+        //formats WAC\user and finds valid email address from user AD mail property.
         public static string GetADEmail(string uUserName)
         {
             uUserName = uUserName.Split('\\')[1];
