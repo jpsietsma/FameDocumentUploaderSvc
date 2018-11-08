@@ -16,6 +16,11 @@ namespace FameDocumentUploaderSvc
         public static string wacDocUploader;
 
         //Called when a File Creation is detected
+        /// <summary>
+        /// Actions to perform when new document is uploaded
+        /// </summary>
+        /// <param name="source">the object source of the change</param>
+        /// <param name="e">FileSystemEvent args from the drop</param>
         public static void OnChanged(object source, FileSystemEventArgs e)
         {
 
@@ -26,10 +31,12 @@ namespace FameDocumentUploaderSvc
             string wacFarmID = nameParts[1];
 
             string wacFarmHome = Configuration.wacFarmHome;
-            string fileSubPath = null;
-            string finalFilePath = null;
+            string fileSubPath = string.Empty;
+            string finalFilePath = string.Empty;
+            string docSectorType = string.Empty;
 
-            bool validWACDocType;
+            bool isContractorDoc = false;
+            bool validWACDocType = false;
             bool validWACFarmID;
 
             DateTime docUploadTime = DateTime.Now;
@@ -48,11 +55,14 @@ namespace FameDocumentUploaderSvc
 
 
             //Check to see if the supplied document type is a valid WAC document that should be stored
+            //Check if supplied document is a participant or contractor document
+            //Determine final document path using document sector type and if document is contractor or participant
             switch (wacDocType)
             {
 
                 case "ASR":
                     {
+                        docSectorType = "A_ASR";
                         validWACDocType = true;
                         fileSubPath = @"Final Documentation\ASRs";
                         finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
@@ -63,24 +73,9 @@ namespace FameDocumentUploaderSvc
 
                         break;
                     }
-
-                case "NMP":
+                case "AEM":
                     {
-                        validWACDocType = true;
-                        fileSubPath = @"Final Documentation\Nutrient Mgmt";
-                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
-
-                        //Write success messages to FAME log and Windows Event log
-                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                        LogEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                        break;
-                    }
-
-                case "WFP0":
-                case "WFP1":
-                case "WFP2":
-                    {
+                        docSectorType = "A_AEM";
                         validWACDocType = true;
                         fileSubPath = @"Final Documentation\WFP-0,WFP-1,WFP-2";
                         finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
@@ -91,30 +86,148 @@ namespace FameDocumentUploaderSvc
 
                         break;
                     }
-
-                case "AEM":
                 case "ALTR":
                 case "CERTLIAB":
+                    {
+                        //goes into contractor folder
+                        validWACDocType = true;
+                        isContractorDoc = true;
+                        docSectorType = "A_CERTLIAB";
+                        
+
+                        break;
+                    }
                 case "COS":
+                    {
+                        docSectorType = "A_COS";
+                        validWACDocType = true;
+                        fileSubPath = @"Final Documentation\WFP-0,1,2 COS\COS";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
                 case "CRP1":
                 case "FPD":
                 case "FPF":
                 case "FRP":
                 case "IRSW9":
-                case "IRSW9F":
+                    {
+                        //goes into contractor folder
+                        validWACDocType = true;
+                        isContractorDoc = true;
+                        docSectorType = "A_IRSW9";
+
+                        break;
+                    }
                 case "OM":
+                    {
+                        docSectorType = "A_OM";
+                        validWACDocType = true;
+                        fileSubPath = @"Final Documentation\O&Ms";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
                 case "PAPP":
                 case "PPD":
                 case "RFP":
                 case "TIER1":
+                    {
+                        docSectorType = "A_TIER1";
+                        validWACDocType = true;
+                        fileSubPath = @"AEM\Tier1";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
                 case "TIER2":
+                    {
+                        docSectorType = "A_TIER2";
+                        validWACDocType = true;
+                        fileSubPath = @"AEM\Tier2";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
+                case "WFP0":
+                    {
+                        docSectorType = "A_WFP0";
+                        validWACDocType = true;
+                        fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-0";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
+                case "WFP1":
+                    {
+                        docSectorType = "A_WFP1";
+                        validWACDocType = true;
+                        fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-1";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
+                case "WFP2":
+                    {
+                        docSectorType = "A_WFP2";
+                        validWACDocType = true;
+                        fileSubPath = @"Final Documentation\WFP-0,WFP-1,WFP-2";
+                        finalFilePath = wacFarmHome + wacFarmID + @"\" + fileSubPath + @"\" + docFileName;
+
+                        //Write success messages to FAME log and Windows Event log
+                        WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                        LogEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                        break;
+                    }
                 case "WFPSUBF":
+                    {
+                        //goes into contractor folder
+                        validWACDocType = true;
+                        isContractorDoc = true;
+                        docSectorType = "A_WFPSUBF";
+
+                        break;
+                    }
+                case "WORKCOMP":
+                    {
+                        //goes into contractor folder
+                        validWACDocType = true;
+                        isContractorDoc = true;
+                        docSectorType = "A_WORKCOMP";
+
+                        break;
+                    }
                 default:
                     {
                         validWACDocType = false;
 
                         //Write invalid document errors to FAME error log and Windows Event log
-                        LogEvent("Invalid Document Type: " + nameParts[0] + ". " + nameParts[1] + " was NOT uploaded", EventLogEntryType.Error);
+                        LogEvent("Invalid or Unknown Document Type: " + nameParts[0] + ". " + nameParts[1] + " was NOT uploaded", EventLogEntryType.Error);
                         WriteFameLog(e, "error", "invalidDocType");
 
                         break;
@@ -122,10 +235,10 @@ namespace FameDocumentUploaderSvc
 
             }
 
-            //Compare security logs to file drop name and time and pull file uploader from Windows Security event logs
+            //Compare security logs to file drop name and time and pull file uploader records from Windows Security event logs
             if (EventLog.SourceExists("Security"))
             {
-                EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
+                EventLog log = new EventLog() { Source = "Security-Auditing", Log = "Security" };
 
                 foreach (EventLogEntry entry in log.Entries)
                 {
@@ -139,12 +252,11 @@ namespace FameDocumentUploaderSvc
             }
             else
             {
-                WriteFameLog("Specified event source: 'security' does not exist");
-                LogEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
+                WriteFameLog("Specified event source: 'security' does not exist or insufficient permissions to access the event log.");
+                LogEvent("Specified event source: 'security' does not exist or insufficient permissions to access the event log.", EventLogEntryType.Error);
             }
 
-            //Check if file has valid farm ID and document type
-            //If user drops a valid document type, then add it to database
+            //If user drops a valid document type for an existing farm, then add it to database
             if (validWACFarmID && validWACDocType)
             {
                 using (SqlConnection conn = new SqlConnection(Configuration.connectionString))
@@ -179,6 +291,10 @@ namespace FameDocumentUploaderSvc
         }
 
         //Check to make sure error, system, and transfer logs exist in the defined area.
+        /// <summary>
+        /// Ensures that document uploader log files exist
+        /// </summary>
+        /// <param name="logType">type of program log to check</param>
         public static void CheckLogFiles(string logType)
         {
             if (logType == "error")
@@ -216,6 +332,10 @@ namespace FameDocumentUploaderSvc
         }
 
         //Logs event to the Windows Event Log as event type information
+        /// <summary>
+        /// Logs event to windows event log as an information type log
+        /// </summary>
+        /// <param name="message">message to write to the log</param>
         public static void LogEvent(string message)
         {
             string eventSource = "FAME Document Upload Watcher";
@@ -226,7 +346,13 @@ namespace FameDocumentUploaderSvc
             EventLog.WriteEntry(eventSource, message);
         }
 
+
         //Logs event to the windows event log as supplied specific event type
+        /// <summary>
+        /// Log event to the windows event log as passed entry type
+        /// </summary>
+        /// <param name="message">Message to write to the event log</param>
+        /// <param name="e">specifies the type of log to write</param>
         public static void LogEvent(string message, EventLogEntryType e)
         {
             string eventSource = "FAME Document Upload Watcher";
@@ -238,17 +364,27 @@ namespace FameDocumentUploaderSvc
         }
 
         //Executes when the timer workerThread is started
+        /// <summary>
+        /// Begin the worker thread for the service
+        /// </summary>
         public static void ExecuteWorkerThread()
         {
             while (true)
             {
                 Thread.Sleep(5000);
                 Console.WriteLine("Worker Thread Status: Working");
-                Console.WriteLine(' ');
+                Console.WriteLine();
             }
         }
 
         //Write to the FAME uploader program logs, using specific log types
+        /// <summary>
+        /// Write to the FAME uploader program logs, using specific log types
+        /// </summary>
+        /// <param name="arg">FileSystemWatcher event to log</param>
+        /// <param name="logType">Type of log to write</param>
+        /// <param name="errSub"></param>
+        /// <param name="addmsg">Message to write to the log</param>
         public static void WriteFameLog(FileSystemEventArgs arg, string logType, string errSub = "notice", string addmsg = "")
         {
 
@@ -352,6 +488,11 @@ namespace FameDocumentUploaderSvc
         }
 
         //Toggles the FileSystemWatcher monitoring
+        /// <summary>
+        /// Toggle FileSystemWatcher on or off
+        /// </summary>
+        /// <param name="status">true or false for monitoring</param>
+        /// <param name="fameWatcher">Instance of FileSystemWatcher object</param>
         public static void ToggleMonitoring(bool status, FileSystemWatcher fameWatcher)
         {
 
@@ -374,6 +515,12 @@ namespace FameDocumentUploaderSvc
         }
 
         //When passed an event log entry and a filename, determines the uploader of the file by checking Windows Security event log entries
+        /// <summary>
+        /// Determine the windows username of the user that uploaded the document
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="fileName">Name of uploaded file to search</param>
+        /// <returns>string username of file drop user</returns>
         public static string GetUploadUserName(string message, string fileName)
         {
             string finalUserName = message;
@@ -384,12 +531,19 @@ namespace FameDocumentUploaderSvc
 
             string finalMessage = finalUserDomain + match.Groups["userName"];
 
-            finalMessage = GetADEmail(finalMessage);
-
             return finalMessage;
         }
 
         //Sends a notification email to uploader when a duplicate file upload is attempted
+        /// <summary>
+        /// Send notification email when duplicate file upload is attempted
+        /// </summary>
+        /// <param name="arg">FileSystemWatcher event to email about</param>
+        /// <param name="uFinalPath">Final path to the uploaded file</param>
+        /// <param name="uDocUploadTime">Time document was uploaded</param>
+        /// <param name="mailType">Type of email to send (single vs multiple files)</param>
+        /// <param name="username">Email Address to send notification to</param>
+        /// <returns>true or false on success or fail of sending email</returns>
         public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
         {
             bool sendSuccess = true;
@@ -443,6 +597,14 @@ namespace FameDocumentUploaderSvc
         }
 
         //Build the email body with placeholders for data, defined by type of mailing 'single', 'summary', or 'duplicate'
+        /// <summary>
+        /// Build body of email to send on file upload with placeholders
+        /// </summary>
+        /// <param name="args">FileSystemWatcher arguments from the file drop</param>
+        /// <param name="uFinalPath">Final path to uploaded file</param>
+        /// <param name="uDocUploadTime">Time document was uploaded</param>
+        /// <param name="mailType">type of email to send (single or multiple files uploaded)</param>
+        /// <returns>HTML body of the email to send</returns>
         public static string CreateEmailBody(FileSystemEventArgs args, string uFinalPath, DateTime uDocUploadTime, string mailType = "single")
         {
             string emailTemplate = mailType;
@@ -505,44 +667,6 @@ namespace FameDocumentUploaderSvc
             }
 
             return body;
-
-        }
-
-        //formats WAC\user and finds valid email address from user AD mail property.
-        public static string GetADEmail(string uUserName)
-        {
-            uUserName = uUserName.Split('\\')[1];
-
-            string finalEmail = null;
-
-            // Connect to our LDAP server
-            DirectoryEntry dEntry = new DirectoryEntry("LDAP://" + Configuration.cfgLDAPServer, Configuration.cfgLDAPUser, Configuration.cfgLDAPPass);
-            DirectorySearcher search = new DirectorySearcher(dEntry);
-
-            // specify the search filter
-            search.Filter = "(&(objectClass=user)(SamAccountName=" + uUserName + "))";
-
-            // specify which property values to return in the search
-
-            search.PropertiesToLoad.Add("mail");        // smtp mail address
-
-            // perform the search
-            SearchResult result = search.FindOne();
-
-            try
-            {
-                finalEmail = result.Properties["mail"].ToString();
-            }
-            catch(Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("------------------------");
-                Console.WriteLine(ex.Message);
-                Console.WriteLine("------------------------");
-                Console.ResetColor();
-            }
-
-            return finalEmail;
 
         }
 

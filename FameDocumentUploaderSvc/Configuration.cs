@@ -45,6 +45,7 @@ namespace FameDocumentUploaderSvc
 #region ########## Program Configuration Section ##########
 
         public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
+        public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
         public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
 
         #endregion
