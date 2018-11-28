@@ -9,7 +9,10 @@ namespace FameDocumentUploaderSvc
     public class Configuration
     {
 
-#region ########## Email Configuration Section ########## 
+        #region ########## Email Configuration Section ########## 
+
+        //Determines if an email is sent when a new file is uploaded to FAME
+        public const bool enableSendingUploadEmail = false;
 
         public const string smtpHost = @"walton.nycwatershed.org";
         public const string smtpUserEmail = @"<FAME Document Uploader> famedocs@nycwatershed.org";
