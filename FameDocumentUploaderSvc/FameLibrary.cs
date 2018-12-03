@@ -717,6 +717,68 @@ namespace FameDocumentUploaderSvc
 
         }
 
+        //Get farmID by pk_farmBusiness
+        /// <summary>
+        /// Return the Farm ID for the farm of the provided pk_farmBusiness
+        /// </summary>
+        /// <param name="uFarmBusiness">pk_FarmBusiness of Farm which to retrieve FarmID</param>
+        /// <returns>string representing the FarmID</returns>
+        public static string GetFarmIdByFarmBusiness(int uFarmBusiness)
+        {
+            string finalFarmID = string.Empty;
 
+            using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+            {
+
+                try
+                {
+                    cnn.Open();
+                    SqlCommand sql = new SqlCommand($@"SELECT farmID FROM dbo.farmBusiness WHERE pk_farmBusiness = '{ uFarmBusiness }' ", cnn);
+                    
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Oh, an error occurred!: " + e.Message);
+                }
+
+            }                     
+
+            return finalFarmID;
+        }
+
+        //Get pk_farmBusiness from provided owner name
+        /// <summary>
+        /// Get pk_farmBusiness from provided first and last names
+        /// </summary>
+        /// <param name="lName">Owner last name of associated farm</param>
+        /// <param name="fName">Owner first name of associated farm</param>
+        /// <returns>Integer representing the pk_farmBusiness</returns>
+        public static int GetFarmBusinessByOwnerOperator(string lName, string fName = null)
+        {
+
+            int pk_farmBusiness = 0;
+
+            using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+            {
+                try
+                {
+                    cnn.Open();
+
+                    SqlCommand sql = new SqlCommand($@"", cnn);
+
+                    Int32 pkFarmBusiness = (Int32)sql.ExecuteScalar();
+                    pk_farmBusiness = pkFarmBusiness;
+
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
+            }
+
+            return pk_farmBusiness;
+        }
+        
     }
 }
