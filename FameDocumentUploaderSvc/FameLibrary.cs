@@ -547,7 +547,7 @@ namespace FameDocumentUploaderSvc
         /// <param name="mailType">Type of email to send (single vs multiple files)</param>
         /// <param name="username">Email Address to send notification to</param>
         /// <returns>true or false on success or fail of sending email</returns>
-        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
+        public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, bool wasSuccessful = true, string errorMessage = null, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
         {
             bool sendSuccess = true;
             string mailRecipient = username;
@@ -746,39 +746,146 @@ namespace FameDocumentUploaderSvc
             return finalFarmID;
         }
 
-        //Get pk_farmBusiness from provided owner name
+        //Get the pk_FarmBusiness for the contractor associated with a document by the provided document prefix
         /// <summary>
-        /// Get pk_farmBusiness from provided first and last names
+        /// Return the pk_participant for the contractor with the provided contractorPrefix (contractor name)
         /// </summary>
-        /// <param name="lName">Owner last name of associated farm</param>
-        /// <param name="fName">Owner first name of associated farm</param>
-        /// <returns>Integer representing the pk_farmBusiness</returns>
-        public static int GetFarmBusinessByOwnerOperator(string lName, string fName = null)
+        /// <param name="contractorPrefix">string contractor prefix to document name</param>
+        /// <returns>INT representing the pk_FarmBusiness of the associated contractor</returns>
+        public static int GetParticipantIDFromContractor(string contractorPrefix)
         {
+            int finalParticipantID = 0;
 
-            int pk_farmBusiness = 0;
-
-            using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+            using (SqlConnection conn = new SqlConnection(Configuration.connectionString))
             {
-                try
+                conn.Open();
+                string baseQuery = $@"SELECT fullname_FL_dnd FROM dbo.participant WHERE fullname_FL_dnd LIKE '%{ contractorPrefix }%' ";
+
+                //Create our sql command object and set the command text and connection context
+                SqlCommand sqlQuery = new SqlCommand(baseQuery, conn);
+
+                //Execute our query and count the results, numRows will be 0 for invalid contractor
+                int.TryParse(sqlQuery.ExecuteNonQuery().ToString(), out int numRows);
+
+                //Show us an error if the contractor name is not recognized and do not upload the file
+                //Otherwise get the participant ID from the database
+                if (numRows == 0)
                 {
-                    cnn.Open();
+                    Console.WriteLine();
+                    Console.WriteLine("Unrecognized contractor name.  Please check the file name and try again.");
+                    Console.WriteLine();
 
-                    SqlCommand sql = new SqlCommand($@"", cnn);
-
-                    Int32 pkFarmBusiness = (Int32)sql.ExecuteScalar();
-                    pk_farmBusiness = pkFarmBusiness;
-
+                    return numRows;
                 }
-                catch (Exception)
+                else
                 {
 
-                    throw;
+                    baseQuery = $@"SELECT pk_participant FROM dbo.participant WHERE fullname_FL_dnd = '{ contractorPrefix }'";
+                    sqlQuery = new SqlCommand(baseQuery, conn);
+
+                    //get our participant id result from the query and parse it as an INT and set equal with finalParticipantID
+                    var participantID = sqlQuery.ExecuteScalar();
+                    int.TryParse(participantID.ToString(), out finalParticipantID);
+
+                    Console.WriteLine();
+                    Console.WriteLine($"Participant ID: { finalParticipantID }");
+                    Console.WriteLine();
+
                 }
             }
 
-            return pk_farmBusiness;
+            return finalParticipantID;
         }
-        
+
+        //Move the file to the appropriate destination based on doc type and participant type
+        /// <summary>
+        /// Move the file from the upload folder to the document final destination
+        /// </summary>
+        /// <param name="fileSource">path to the source file</param>
+        /// <param name="fileDestination">path to the destination file</param>
+        /// <param name="error">Holds the errors in the event of a failed move</param>
+        /// <returns>success or failure based on move attempt</returns>
+        public static bool UploadFile(string fileSource, string fileDestination, out string error)
+        {
+            bool finalStatus = false;
+
+            try
+            {
+                File.Move(Configuration.cfgWatchDir + @"\" + fileSource, fileDestination);
+
+                finalStatus = true;
+
+                error = null;
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+
+                finalStatus = false;
+            }      
+
+            return finalStatus;
+        }
+
+        //Process the attempted file upload and act accordingly
+        /// <summary>
+        /// Attempt the upload process, if enabled send verification email, log successes or errors
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="finalFilePath"></param>
+        public static void ProcessUploadAttempt(FileSystemEventArgs e, string finalFilePath)
+        {
+            //Attempt to upload the file to the final destination
+            if (FameLibrary.UploadFile(e.Name, finalFilePath, out string uploadError))
+            {
+                //If enabled, build and send email notification of successful upload
+                if (Configuration.enableSendingUploadEmail)
+                {
+                    SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
+                }
+
+                //Write success messages to FAME log and Windows Event log
+                WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
+                LogEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+            }
+            else
+            {
+                //If enabled, build and sent failure email
+                if (Configuration.enableSendingUploadEmail)
+                {
+                    SendUploadedFileEmail(e, finalFilePath, DateTime.Now, false, uploadError);
+                }
+
+                //Write failure messages to FAME log and Windows Event log
+                WriteFameLog(e, "notice", " ", e.Name + " could not be uploaded to " + finalFilePath);
+                LogEvent(DateTime.Now.ToString() + " - " + e.Name + " could not be " + e.ChangeType + " to FAME.  No changes have been made. ");
+
+                Console.WriteLine("File could not be uploaded, Please try again: ");
+                Console.WriteLine($@"{ uploadError }");
+            }
+
+        }
+
+        //Build destination file path for upload
+        /// <summary>
+        /// Build file destination path for newly uploaded files
+        /// </summary>
+        /// <param name="contractorName">Name of the contractor which document belongs</param>
+        /// <param name="fileSubPath">The type of document which determines sub folder</param>
+        /// <param name="docFileName">The file name of the document</param>
+        /// <returns>string representing destination file path</returns>
+        public static string BuildUploadFilePath(bool isContractor, string wacEntityName, string fileSubPath, string docFileName)
+        {
+            if (isContractor)
+            {
+                return $@"{ Configuration.wacContractorHome }\{ wacEntityName }\{ fileSubPath }\{ docFileName }";
+
+            }
+            else
+            {
+                return $@"{ Configuration.wacFarmHome }\{ wacEntityName }\{ fileSubPath }\{ docFileName }";
+            }
+        }
+
     }
 }

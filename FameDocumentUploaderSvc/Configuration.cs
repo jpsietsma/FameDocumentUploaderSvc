@@ -25,7 +25,7 @@ namespace FameDocumentUploaderSvc
 #region ########## SQL Configuration Section ##########
 
         public const string cfgSQLServer = @"JamesSietsma-HP\SQLEXPRESS";
-        public const string cfgSQLDatabase = @"wac_test";
+        public const string cfgSQLDatabase = @"wacTest";
         public const string cfgSQLUsername = @"famedocs";
         public const string cfgSQLPassword = @"Potok4";
         public const string cfgSQLTable = "documentArchive";
@@ -48,7 +48,7 @@ namespace FameDocumentUploaderSvc
 #region ########## Program Configuration Section ##########
 
         public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
-        public const string wacContractorHome = @"E:\Projects\fame uploads\Farms\Contractors\";
+        public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
         public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
 
         #endregion
