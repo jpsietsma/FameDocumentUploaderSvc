@@ -54,7 +54,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
-    <Compile Include="Models\FameDocument.cs" />
+    <Compile Include="Models\FameBaseDocument.cs" />
+    <Compile Include="Models\FameContractorDocument.cs" />
     <Compile Include="FameLibrary.cs" />
     <Compile Include="FameUploader.cs">
       <SubType>Component</SubType>
@@ -62,6 +63,7 @@
     <Compile Include="FameUploader.Designer.cs">
       <DependentUpon>FameUploader.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\FameParticipantDocument.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
