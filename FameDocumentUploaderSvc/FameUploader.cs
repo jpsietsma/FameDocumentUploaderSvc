@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.ServiceProcess;
@@ -14,45 +13,81 @@ namespace FameDocumentUploaderSvc
     public partial class FameUploader : ServiceBase
     {
         public FileSystemWatcher fameWatcher = new FileSystemWatcher(Configuration.cfgWatchDir);
-        private Timer workerTimer = null;
+        private Timer WorkerTimer = null;
+        private Timer MailTimer = null;
 
         public FameUploader()
         {
-
             InitializeComponent();
         }
 
-        //Actions performed when timer elapses.
-        private void WorkerTimer_Tick(object sender, ElapsedEventArgs e)
-        {
-            //Currently does nothing, but we could add emailing here if conditions are met for hourly/daily mailings
-        }
-
+        /// <summary>
+        /// Occurs when the windows service is started
+        /// </summary>
+        /// <param name="args"></param>
         protected override void OnStart(string[] args)
         {
 
-            //Create and start our timer
-            workerTimer = new Timer();
-            this.workerTimer.Interval = 30000;
-            this.workerTimer.Elapsed += new ElapsedEventHandler(this.WorkerTimer_Tick);
-            workerTimer.Enabled = true;
+            //Create and start new thread for timer to allow program to wait for incoming files
+            WorkerTimer = new Timer(Configuration.cfgWorkerInterval);
 
-            //Register the different types of file system events to listen for, Created, Changed, Renamed, Deleted
-            //This launches the onChanged method we defined above.
+            //Timer to control mailflow, default every 30 minutes
+            Timer MailTimer = new Timer(Configuration.cfgMailTimer);
+
+            //Register events to listen for: Created only
             fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnFileDropped);
+
+            //Check log messages at predefined intervals and send emails if necessary.            
+            MailTimer.Elapsed += new ElapsedEventHandler(FameLibrary.MailTimer_Tick);
+
 
             //This begins the actual file monitoring
             FameLibrary.ToggleMonitoring(true, fameWatcher);
+            WorkerTimer.Start();
+            MailTimer.Start();
 
         }
 
+        /// <summary>
+        /// Occurs when stopping the windows service
+        /// </summary>
         protected override void OnStop()
         {
-            //Stop the file monitoring
-            FameLibrary.ToggleMonitoring(false, fameWatcher);
 
-            //Stop the timer thread
-            workerTimer.Enabled = false;
+            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            WorkerTimer.Stop();
+            MailTimer.Stop();
+        }
+
+        /// <summary>
+        /// Occurs when pausing the windows service
+        /// </summary>
+        protected override void OnPause()
+        {
+            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            WorkerTimer.Stop();
+            MailTimer.Stop();
+        }
+
+        /// <summary>
+        /// Occurs when resuming the windows service from a paused state
+        /// </summary>
+        protected override void OnContinue()
+        {
+            FameLibrary.ToggleMonitoring(true, fameWatcher);
+            WorkerTimer.Start();
+            MailTimer.Start();
+
+        }
+
+        /// <summary>
+        /// Occurs when windows is shutting down
+        /// </summary>
+        protected override void OnShutdown()
+        {
+            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            MailTimer.Stop();
+            WorkerTimer.Stop();
         }
     }
 }
