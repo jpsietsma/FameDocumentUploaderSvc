@@ -15,6 +15,7 @@ namespace FameDocumentUploaderSvc.Models
         public int? PK3 { get; set; }
         public string TypeSectorCode { get; set; }
         public string TypeFolderSectorCode { get; set; }
+        public int pk_participant { get; set; }
 
 
     }

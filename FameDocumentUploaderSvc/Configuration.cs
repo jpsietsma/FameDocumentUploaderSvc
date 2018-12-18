@@ -21,9 +21,11 @@ namespace FameDocumentUploaderSvc
         public const int smtpPort = 587;
         public const int cfgMailTimer = 1800000;
 
-#endregion
+        #endregion
 
-#region ########## SQL Configuration Section ##########
+        #region ########## SQL Configuration Section ##########
+
+        public const string cfgConStrName = "wacFameDB";
 
         public const string cfgSQLServer = @"JamesSietsma-HP\SQLEXPRESS";
         public const string cfgSQLDatabase = @"wacTest";

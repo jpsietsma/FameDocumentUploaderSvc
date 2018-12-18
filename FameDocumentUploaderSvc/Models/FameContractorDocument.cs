@@ -8,6 +8,9 @@ namespace FameDocumentUploaderSvc.Models
 {
     public class FameContractorDocument : FameBaseDocument
     {
+        public string ContractorName { get; set; }
+        public int pk_farmBusiness { get; set; }
+
         public FameContractorDocument()
         {
 

@@ -39,7 +39,7 @@ namespace FameDocumentUploaderSvc
 
             //Register the different types of file system events to listen for, Created, Changed, Renamed, Deleted
             //This launches the onChanged method we defined above.
-            fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnChanged);
+            fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnFileDropped);
 
             //This begins the actual file monitoring
             FameLibrary.ToggleMonitoring(true, fameWatcher);

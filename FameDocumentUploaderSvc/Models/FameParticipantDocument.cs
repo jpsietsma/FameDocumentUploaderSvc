@@ -8,6 +8,8 @@ namespace FameDocumentUploaderSvc.Models
 {
     public class FameParticipantDocument : FameBaseDocument
     {
+        public string FarmID { get; set; }
+
         public FameParticipantDocument()
         {
 
