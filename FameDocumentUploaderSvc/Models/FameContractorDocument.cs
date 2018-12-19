@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FameDocumentUploaderSvc.Models
 {
-    public class FameContractorDocument : FameBaseDocument
+    public class FameContractorDocument : FameBaseDocument, IFameDocument
     {
         public string ContractorName { get; set; }
 

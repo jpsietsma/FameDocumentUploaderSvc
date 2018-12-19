@@ -47,5 +47,28 @@ namespace FameDocumentUploaderSvc.Models
 
         }
 
+        //Determines if document is participant or contractor document
+        /// <summary>
+        /// Determine if document is a participant or contractor document based on DocumentEntity
+        /// </summary>
+        /// <param name="doc">Document to check type on</param>
+        /// <returns>string either 'participant' or 'contractor'</returns>
+        public static string DetermineDocEntityType(this IFameDocument doc)
+        {
+            if (FameLibrary.GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
+            {
+                if (FameLibrary.GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
+                {
+                    return "contractor";
+                }
+
+                return null;
+            }
+            else
+            {
+                return "participant";
+            }
+        }
+
     }
 }

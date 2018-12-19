@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FameDocumentUploaderSvc.Models
 {
-    public class FameParticipantDocument : FameBaseDocument
+    public class FameParticipantDocument : FameBaseDocument, IFameDocument
     {
         public string FarmID { get; set; }
         public int FarmBusinessID { get; set; }
@@ -54,82 +54,7 @@ namespace FameDocumentUploaderSvc.Models
 
                 case 2:
                     {
-                        switch (DocumentType)
-                        {
-                            case "AEM":
-                                {
-
-                                    break;
-                                }
-                            case "ALTR":
-                                {
-
-                                    break;
-                                }
-                            case "ASR":
-                                {
-
-                                    break;
-                                }
-                            case "COS":
-                                {
-
-                                    break;
-                                }
-                            case "CRP1":
-                                {
-
-                                    break;
-                                }
-                            case "NMCP":
-                                {
-
-                                    break;
-                                }
-                            case "NMP":
-                                {
-
-                                    break;
-                                }
-                            case "OM":
-                                {
-
-                                    break;
-                                }
-                            case "TIER1":
-                            case "TIER-1":
-                                {
-
-                                    break;
-                                }
-                            case "TIER2":
-                            case "TIER-2":
-                                {
-
-                                    break;
-                                }
-                            case "WFP0":
-                            case "WFP-0":
-                                {
-
-                                    break;
-                                }
-                            case "WFP1":
-                            case "WFP-1":
-                                {
-
-                                    break;
-                                }
-                            case "WFP2":
-                            case "WFP-2":
-                                {
-
-                                    break;
-                                }
-                            default:
-                                break;
-                        }
-
+                        this.PK2 = null;
                         this.PK2 = pkValue;
                         finalStatus = true;
                         break;
@@ -137,8 +62,7 @@ namespace FameDocumentUploaderSvc.Models
 
                 case 3:
                     {
-                        
-                        
+                        this.PK3 = null;   
                         break;
                     }
 
