@@ -17,10 +17,8 @@ using FameDocumentUploaderSvc.Models;
 namespace FameDocumentUploaderSvc
 {
     public static class FameLibrary
-    {
-        public static string wacDocUploader;
-
-
+    {      
+        
         #region Logging Method Definitions...
 
             //logs event to the Windows Event Log as event type information
@@ -74,7 +72,7 @@ namespace FameDocumentUploaderSvc
 
                     case "error": {
 
-                            logTypePath = Configuration.errorLogPath;
+                            logTypePath = Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
 
                             break;
                         }
@@ -110,7 +108,7 @@ namespace FameDocumentUploaderSvc
 
                             if (errSub == "invalidFarmIDorContractor")
                             {
-                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath, true))
+                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Farm ID or Contractor - " + (arg.Name).Split('_')[1] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -119,7 +117,7 @@ namespace FameDocumentUploaderSvc
                             }
                             else if (errSub == "invalidDocType")
                             {
-                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath, true))
+                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Document Type - " + (arg.Name).Split('_')[0] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -132,7 +130,7 @@ namespace FameDocumentUploaderSvc
                         {
                             CheckLogFiles("transfer");
 
-                            using (StreamWriter file = new StreamWriter(Configuration.transferLogPath, true))
+                            using (StreamWriter file = new StreamWriter(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log", true))
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
@@ -144,7 +142,7 @@ namespace FameDocumentUploaderSvc
                         {
                             CheckLogFiles("system");
 
-                            using (StreamWriter file = new StreamWriter(Configuration.sysLogPath, true))
+                            using (StreamWriter file = new StreamWriter(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
@@ -166,7 +164,7 @@ namespace FameDocumentUploaderSvc
                 message += msg;
 
                 CheckLogFiles("system");
-                using (StreamWriter file = new StreamWriter(Configuration.sysLogPath, true))
+                using (StreamWriter file = new StreamWriter(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
                 {
                     file.WriteLine(message);
                 }
@@ -182,9 +180,9 @@ namespace FameDocumentUploaderSvc
             {
                 if (logType == "error")
                 {
-                    if (!File.Exists(Configuration.errorLogPath))
+                    if (!File.Exists(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
                     {
-                        using (FileStream fs = File.Create(Configuration.errorLogPath))
+                        using (FileStream fs = File.Create(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
                         {
                             LogWindowsEvent(DateTime.Now.ToString() + " - Daily Error Log Does not exist, the file has been created", EventLogEntryType.Warning);
                         }
@@ -193,9 +191,9 @@ namespace FameDocumentUploaderSvc
 
                 if (logType == "transfer")
                 {
-                    if (!File.Exists(Configuration.transferLogPath))
+                    if (!File.Exists(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
                     {
-                        using (FileStream fs = File.Create(Configuration.transferLogPath))
+                        using (FileStream fs = File.Create(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
                         {
                             LogWindowsEvent(DateTime.Now.ToString() + " - Daily transfer Log Does not exist, the file has been created.", EventLogEntryType.Warning);
                         }
@@ -204,9 +202,9 @@ namespace FameDocumentUploaderSvc
 
                 if (logType == "system")
                 {
-                    if (!File.Exists(Configuration.sysLogPath))
+                    if (!File.Exists(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
                     {
-                        using (FileStream fs = File.Create(Configuration.sysLogPath))
+                        using (FileStream fs = File.Create(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
                         {
                             LogWindowsEvent(DateTime.Now.ToString() + " - Daily System Log Does not exist, the file has been created.", EventLogEntryType.Warning);
                         }
@@ -368,55 +366,60 @@ namespace FameDocumentUploaderSvc
             public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, bool wasSuccessful = true, string errorMessage = null, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
             {
                 bool sendSuccess = true;
-                string mailRecipient = username;
 
-            SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort)
-            {
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass),
-                Host = Configuration.smtpHost,
-                EnableSsl = false,
-                Port = Configuration.smtpPort
-            };
+                //If enabled, build and sent failure email
+                if (ConfigurationManager.AppSettings["EnableUploadEmails"] == "true")
+                {                
+                    string mailRecipient = username;
 
-            MailMessage messageObj = new MailMessage();
+                    SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort)
+                    {
+                        UseDefaultCredentials = false,
+                        Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass),
+                        Host = Configuration.smtpHost,
+                        EnableSsl = false,
+                        Port = Configuration.smtpPort
+                    };
 
-                //code to build and send email to recipient
-                messageObj.To.Add(mailRecipient);
-                messageObj.Bcc.Add(new MailAddress("jsietsma@nycwatershed.org"));
-                messageObj.From = new MailAddress(Configuration.smtpUserEmail);
-                messageObj.IsBodyHtml = true;
-                messageObj.Subject = "Document Added: " + arg.Name;
-                messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime, mailType);
+                    MailMessage messageObj = new MailMessage();
 
-                try
-                {
-                    smtp.Send(messageObj);
+                    //code to build and send email to recipient
+                    messageObj.To.Add(mailRecipient);
+                    messageObj.Bcc.Add(new MailAddress("jsietsma@nycwatershed.org"));
+                    messageObj.From = new MailAddress(Configuration.smtpUserEmail);
+                    messageObj.IsBodyHtml = true;
+                    messageObj.Subject = "Document Added: " + arg.Name;
+                    messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime, mailType);
+
+                    try
+                    {
+                        smtp.Send(messageObj);
+                    }
+                    catch (SmtpFailedRecipientException ex)
+                    {
+                        Console.WriteLine();
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(ex.InnerException);
+                        Console.WriteLine();
+                        Console.ResetColor();
+
+                        //Return false if message failed to send
+                        sendSuccess = false;
+                    }
+                    catch (SmtpException ex)
+                    {
+                        Console.WriteLine();
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(ex.InnerException);
+                        Console.WriteLine();
+                        Console.ResetColor();
+
+                        //Return false if message failed to send
+                        sendSuccess = false;
+                    }
                 }
-                catch (SmtpFailedRecipientException ex)
-                {
-                    Console.WriteLine();
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(ex.InnerException);
-                    Console.WriteLine();
-                    Console.ResetColor();
 
-                    //Return false if message failed to send
-                    sendSuccess = false;
-                }
-                catch (SmtpException ex)
-                {
-                    Console.WriteLine();
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(ex.InnerException);
-                    Console.WriteLine();
-                    Console.ResetColor();
-
-                    //Return false if message failed to send
-                    sendSuccess = false;
-                }
-
-                return sendSuccess;
+                return sendSuccess;    
             }
 
             //Build the email body with placeholders for data, defined by type of mailing 'single', 'summary', or 'duplicate'
@@ -505,13 +508,12 @@ namespace FameDocumentUploaderSvc
             /// <param name="e">FileSystemEventArgs object of the file.created action</param>
             public static void OnFileDropped(object source, FileSystemEventArgs e)
             {
-                FameBaseDocument baseDoc = new FameBaseDocument(e);
-
+                FameBaseDocument baseDoc = new FameBaseDocument(e);              
+            
                 String[] nameParts = e.Name.Split('_');
-                string wacDocType = nameParts[0];
                 string wacFarmID = nameParts[1];
-                string wacContractorName = nameParts[1];
-                string wacDocTypeSectorFolderCode = string.Empty;
+                string wacDocTypeFolderSectorCode = string.Empty;
+                string wacDocTypeSectorCode = string.Empty;
 
                 string fileSubPath = null;
                 string finalFilePath = null;
@@ -520,52 +522,25 @@ namespace FameDocumentUploaderSvc
                 int? pk2 = null; //If doctype is ASR then represents pk_asrAg, if doctype is WFP2 then represents pk_form_wfp2
                 int? pk3 = null; //???
 
-                //Determine if document is a valid Contractor or participant by checking nameparts[1] for either farmID or ContractorName in database
-                //if (Directory.Exists(Configuration.wacFarmHome + wacFarmID))
-                //{
-                //    validWACFarmID = true;
-                //    validWacContractor = false;
-                //}
-                //else if (Directory.Exists(Configuration.wacContractorHome + wacContractorName))
-                //{
-                //    validWacContractor = true;
-                //    validWACFarmID = false;
-                //}
-                //else
-                //{
-                //    validWACFarmID = false;
-                //    validWacContractor = false;
-
-                //    FameLibrary.WriteFameLog(e, "error", "invalidFarmID");
-                //}
-
                 //Check document type and set options as per supplied type
-                switch (wacDocType)
+                switch (baseDoc.DocumentType)
                 {
 
                     #region WAC Participant Document Types...
 
                     case "ASR":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType);
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
-                            pk3 = null;
-
-                            wacDocTypeSectorFolderCode = "A_ASR";
+                            pk3 = null; //Always null with ASRs
 
                             fileSubPath = @"Final Documentation\ASRs";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Build and Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -575,25 +550,19 @@ namespace FameDocumentUploaderSvc
 
                     case "NMCP":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMCP", baseDoc.DocumentType);
+                            
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_NMCP";
+                            wacDocTypeFolderSectorCode = "A_NMCP";
 
                             fileSubPath = @"Final Documentation\Nutrient Mgmt\Nm Credits";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -603,25 +572,19 @@ namespace FameDocumentUploaderSvc
 
                     case "NMP":
                         {
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\NM Plans", "A_NMP", baseDoc.DocumentType);
+                        
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_NMP";
+                            wacDocTypeFolderSectorCode = "A_NMP";
 
                             fileSubPath = @"Final Documentation\Nutrient Mgmt\Nm Plans";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -632,25 +595,19 @@ namespace FameDocumentUploaderSvc
                     case "WFP0":
                     case "WFP-0":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_WFP0", @"WFP-0");    
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_WFP0";
+                            wacDocTypeFolderSectorCode = "A_WFP0";
 
                             fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-0";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -661,25 +618,19 @@ namespace FameDocumentUploaderSvc
                     case "WFP1":
                     case "WFP-1":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_WFP1", @"WFP-1");
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_WFP1";
+                            wacDocTypeFolderSectorCode = "A_WFP1";
 
                             fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-1";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -690,25 +641,19 @@ namespace FameDocumentUploaderSvc
                     case "WFP2":
                     case "WFP-2":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-2", "A_WFP2", @"WFP-2");
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_WFP2";
+                            wacDocTypeFolderSectorCode = "A_WFP2";
 
                             fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-2";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -718,25 +663,19 @@ namespace FameDocumentUploaderSvc
 
                     case "AEM":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "AEM", "A_AEM", baseDoc.DocumentType);
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_AEM";
+                            wacDocTypeFolderSectorCode = "A_AEM";
 
                             fileSubPath = @"AEM";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -747,25 +686,19 @@ namespace FameDocumentUploaderSvc
                     case "TIER1":
                     case "TIER-1":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier1", "A_TIER1", @"TIER-1");
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_TIER1";
+                            wacDocTypeFolderSectorCode = "A_TIER1";
 
                             fileSubPath = @"AEM\Tier1";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -773,28 +706,22 @@ namespace FameDocumentUploaderSvc
                             break;
                         }
 
-                    case "TIER-2":
                     case "TIER2":
+                    case "TIER-2":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier2", "A_TIER2", @"TIER-2");
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_TIER2";
+                            wacDocTypeFolderSectorCode = "A_TIER2";
 
                             fileSubPath = @"AEM\Tier2";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -804,25 +731,19 @@ namespace FameDocumentUploaderSvc
 
                     case "ALTR":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "Correspondence", "A_ALTR", baseDoc.DocumentType);
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_ALTR";
+                            wacDocTypeFolderSectorCode = "A_ALTR";
 
                             fileSubPath = @"Correspondence";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -832,26 +753,20 @@ namespace FameDocumentUploaderSvc
 
                     case "COS":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2, COS\COS", "A_OVERFORM", baseDoc.DocumentType);
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
 
-                            wacDocTypeSectorFolderCode = "A_OVERFORM";
+                            wacDocTypeFolderSectorCode = "A_OVERFORM";
 
                             fileSubPath = @"Final Documentation\WFP-0,1,2 COS\COS";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -861,25 +776,19 @@ namespace FameDocumentUploaderSvc
 
                     case "CRP1":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);    
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_OVERFORM";
+                            wacDocTypeFolderSectorCode = "A_OVERFORM";
 
                             fileSubPath = $@"Procurement\CREP";
 
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
-
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                    
-                            //Build and Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
+                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");                
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine();
@@ -888,25 +797,19 @@ namespace FameDocumentUploaderSvc
 
                     case "OM":
                         {
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType);    
+
                             pk1 = GetFarmBusinessByFarmId(wacFarmID);
                             pk2 = null;
                             pk3 = null;
 
-                            wacDocTypeSectorFolderCode = "A_FORMWAC";
+                            wacDocTypeFolderSectorCode = "A_FORMWAC";
 
                             fileSubPath = @"Final Documentation\O&Ms";
-
-                            finalFilePath = BuildUploadFilePath(false, wacFarmID, fileSubPath, e.Name);
 
                             //Write success messages to FAME log and Windows Event log
                             WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                             LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            //Send email notification of successful upload
-                            if (Configuration.enableSendingUploadEmail)
-                            {
-                                SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                            }
 
                             Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
                             Console.WriteLine(finalFilePath);
@@ -920,53 +823,30 @@ namespace FameDocumentUploaderSvc
 
                     case "GeneralLiability":
                     case "LIABILITY":
-                    case "CERTILIAB":
                     case "CERTLIAB":
                         {
-                            //Get the participant ID for the contractor which document belongs
-                            pk1 = GetParticipantIDFromContractor(wacContractorName);
-                            pk2 = null;
-                            pk3 = null;
-
-                            //Set the document type sector folder code as per the db
-                            wacDocTypeSectorFolderCode = "CONT_INS";
-
-                            //Set the subfolder where the document type will reside
-                            fileSubPath = $@"General Liability";
-
-                            //Build the final path for where the file should be uploaded
-                            finalFilePath = BuildUploadFilePath(true, wacContractorName, fileSubPath, e.Name);
+                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, "General Liability", "CONT_INS", "CERTLIAB");
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, finalFilePath);
+                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(finalFilePath, e.Name, wacDocTypeSectorFolderCode, pk1, pk2, pk3, wacDocUploader, out string errorMessage);
+                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode, 
+                                       NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
 
                             break;
                         }
 
                     case "WORKCOMP":
                         {
-                            //Get the participant ID for the contractor which document belongs
-                            pk1 = GetParticipantIDFromContractor(wacContractorName);
-                            pk2 = null;
-                            pk3 = null;
-
-                            //Set the document type sector folder code as per the db
-                            wacDocTypeSectorFolderCode = "CONT_COMP";
-
-                            //Set the subfolder where the document type will reside
-                            fileSubPath = @"Workers Comp";
-
-                            //Build the final path for where the file should be uploaded
-                            finalFilePath = BuildUploadFilePath(true, wacContractorName, fileSubPath, e.Name);
+                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, "Workers Comp", "CONT_COMP", baseDoc.DocumentType);
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, finalFilePath);
+                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(finalFilePath, e.Name, wacDocTypeSectorFolderCode, pk1, pk2, pk3, wacDocUploader, out string errorMessage);
+                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode,
+                                NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
 
                             break;
                         }
@@ -974,25 +854,14 @@ namespace FameDocumentUploaderSvc
                     case "IRSW9F":
                     case "IRSW9":
                         {
-                            //Get the participant ID for the contractor which document belongs
-                            pk1 = GetParticipantIDFromContractor(wacContractorName);
-                            pk2 = null;
-                            pk3 = null;
-
-                            //Set the document type sector folder code as per the db
-                            wacDocTypeSectorFolderCode = "CONT_IRS";
-
-                            //Set the subfolder where the document type will reside
-                            fileSubPath = @"W-9";
-
-                            //Build the destination path for where the file should be uploaded
-                            finalFilePath = BuildUploadFilePath(true, wacContractorName, fileSubPath, e.Name);
+                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, @"W-9", "CONT_IRS", "IRSW9");
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, finalFilePath);
+                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(finalFilePath, e.Name, wacDocTypeSectorFolderCode, pk1, pk2, pk3, wacDocUploader, out string errorMessage);
+                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode,
+                                NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
 
                             break;
                         }
@@ -1000,15 +869,10 @@ namespace FameDocumentUploaderSvc
 
                     default:
                         {
-
-                            //Write invalid document errors to FAME error log and Windows Event log
-                            WriteFameLog("error", "Invalid FarmID, Contractor, or Document Type.  Document will not be uploaded.");
-                            LogWindowsEvent("Invalid FarmID, Contractor, or Document Type.  Document will not be uploaded.");
-
-                            Console.WriteLine($@"Unknown Document Type: { nameParts[0] } has been detected.  Document WILL NOT be uploaded");
+                            Console.WriteLine($@"Unknown Document Type: '{ baseDoc.DocumentType }' has been detected.  Document WILL NOT be uploaded.");
                             Console.WriteLine();
 
-                            break;
+                            throw new InvalidDocumentTypeException(baseDoc.DocumentType);
                         }
 
                 }
@@ -1084,11 +948,8 @@ namespace FameDocumentUploaderSvc
                 //Attempt to upload the file to the final destination
                 if (FameLibrary.UploadFile(e.Name, finalFilePath, out string uploadError))
                 {
-                    //If enabled, build and send email notification of successful upload
-                    if (Configuration.enableSendingUploadEmail)
-                    {
-                        SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
-                    }
+                    //Send email notification of successful upload
+                    SendUploadedFileEmail(e, finalFilePath, DateTime.Now);
 
                     //Write success messages to FAME log and Windows Event log
                     WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
@@ -1096,11 +957,8 @@ namespace FameDocumentUploaderSvc
                 }
                 else
                 {
-                    //If enabled, build and sent failure email
-                    if (Configuration.enableSendingUploadEmail)
-                    {
-                        SendUploadedFileEmail(e, finalFilePath, DateTime.Now, false, uploadError);
-                    }
+                    //Send email notification of successful upload
+                    SendUploadedFileEmail(e, finalFilePath, DateTime.Now, false, uploadError);
 
                     //Write failure messages to FAME log and Windows Event log
                     WriteFameLog(e, "notice", " ", e.Name + " could not be uploaded to " + finalFilePath);
@@ -1110,28 +968,29 @@ namespace FameDocumentUploaderSvc
                     Console.WriteLine($@"{ uploadError }");
                 }
 
+            }       
+            
+            //Build final destination file path for contractor document
+            /// <summary>
+            /// Build FinalUploadPath string, represents final path for file upload
+            /// </summary>
+            /// <param name="contractorDoc">Contractor document for which to build move destination path</param>
+            /// <returns>string representing move destination final path</returns>
+            public static string BuildUploadFilePath(this FameContractorDocument contractorDoc)
+            {
+                return $@"{ Configuration.wacContractorHome }\{ contractorDoc.ContractorName }\{ contractorDoc.FinalSubPath }\{ contractorDoc.DocumentName }";
             }
 
-            //Build destination file path for upload
+            //Build final destination file path for participant document
             /// <summary>
-            /// Build file destination path for newly uploaded files
+            /// Build FinalUploadPath string, represents final path for file upload
             /// </summary>
-            /// <param name="contractorName">Name of the contractor which document belongs</param>
-            /// <param name="fileSubPath">The type of document which determines sub folder</param>
-            /// <param name="docFileName">The file name of the document</param>
-            /// <returns>string representing destination file path</returns>
-            public static string BuildUploadFilePath(bool isContractor, string wacEntityName, string fileSubPath, string docFileName)
+            /// <param name="participantDoc">Participant document for which to build move destination path</param>
+            /// <returns>string representing move destination final path</returns>
+            public static string BuildUploadFilePath(this FameParticipantDocument participantDoc)
             {
-                if (isContractor)
-                {
-                    return $@"{ Configuration.wacContractorHome }\{ wacEntityName }\{ fileSubPath }\{ docFileName }";
-
-                }
-                else
-                {
-                    return $@"{ Configuration.wacFarmHome }\{ wacEntityName }\{ fileSubPath }\{ docFileName }";
-                }
-            }        
+                return $@"{ Configuration.wacFarmHome }\{ participantDoc.FarmID }\{ participantDoc.FinalSubPath }\{ participantDoc.DocumentName }";
+            }
                 
             //Build sql, execute query string for inserting document records
             /// <summary>
@@ -1198,7 +1057,7 @@ namespace FameDocumentUploaderSvc
             /// <param name="e">ElapsedEventArgs object</param>
             public static void MailTimer_Tick(object source, ElapsedEventArgs e)
                 {
-                    if (Configuration.enableSendingUploadEmail)
+                    if (ConfigurationManager.AppSettings["EnableUploadEmails"] == "true")
                     {
                         //Do something if we have allowed sending emails through the configuration file
                     }
@@ -1258,31 +1117,44 @@ namespace FameDocumentUploaderSvc
         #region Extension Methods
 
             #region FameDocument class extension methods
-            
-                //Convert a FameBaseDocument to either a FameParticipantDocument or FameContractorDocument object
+                            
+                //Convert  FameBaseDocument to FameContractorDocument
                 /// <summary>
-                /// Convert FameBaseDocument to FameContractorDocument or FameParticipantDocument object
+                /// Convert the uploaded base document to a Contractor document
                 /// </summary>
-                /// <param name="baseDoc">FameBaseDocument to convert to specific document</param>
-                /// <param name="isContractor">True if converting to contractor document, false if to participant document</param>
-                /// <returns>FameParticipantDocument or FameContractorDocument depending on parameters passed</returns>
-                public static object ConvertDocument(this FameBaseDocument baseDoc, bool isContractor)
+                /// <param name="baseDoc">Base document to convert</param>
+                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
+                /// <returns>FameContractorDocument object pre-populated</returns>
+                public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
                 {
-                    object finalDoc = null;
+                    FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
 
-                    if (isContractor)
-                    {
-                        finalDoc = new FameContractorDocument { };
-                    }
-                    else
-                    {
-                        finalDoc = new FameParticipantDocument { };
-                    }
+                    NewContractorDocument.AssignPK(1, GetParticipantIDFromContractor(NewContractorDocument.ContractorName));
+                    NewContractorDocument.AssignPK(2, null);
+                    NewContractorDocument.AssignPK(3, null);
 
-                    return finalDoc;
+                    return NewContractorDocument;
                 }
 
-            #endregion
+                //Convert FameBaseDocument to FameParticipantDocument
+                /// <summary>
+                /// Convert the uploaded base document to a Participant document
+                /// </summary>
+                /// <param name="baseDoc">FameBaseDocument to convert</param>
+                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
+                /// <returns>FameParticipantDocument pre-filled with relevent information</returns>
+                public static FameParticipantDocument ConvertToParticipantDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+                {
+                    FameParticipantDocument NewParticipantDocument = new FameParticipantDocument(e, fileSubPath, folderSector, docSector);
+                    
+                    NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(NewParticipantDocument.FarmID));
+                    NewParticipantDocument.AssignPK(2, null);
+                    NewParticipantDocument.AssignPK(3, null);
+
+                    return NewParticipantDocument;
+                }
+
+        #endregion
 
         #endregion
     }

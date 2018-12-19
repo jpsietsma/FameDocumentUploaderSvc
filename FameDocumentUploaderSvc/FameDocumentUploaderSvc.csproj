@@ -64,6 +64,9 @@
       <DependentUpon>FameUploader.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\FameParticipantDocument.cs" />
+    <Compile Include="Models\IFameDocument.cs" />
+    <Compile Include="Models\InvalidDocumentContractorException.cs" />
+    <Compile Include="Models\InvalidDocumentTypeException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>

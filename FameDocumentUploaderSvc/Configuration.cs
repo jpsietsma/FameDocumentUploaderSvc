@@ -9,7 +9,7 @@ namespace FameDocumentUploaderSvc
     public class Configuration
     {
 
-#region ########## Email Configuration Section ########## 
+        #region ########## Email Configuration Section ########## 
 
         //Determines if an email is sent when a new file is uploaded to FAME
         public const bool enableSendingUploadEmail = false;
@@ -38,17 +38,17 @@ namespace FameDocumentUploaderSvc
                                               + $"User Id='{cfgSQLUsername}';"
                                               + $"Password='{cfgSQLPassword}';";
 
-#endregion
+        #endregion
 
-#region ########## Log File Configuration Section ##########
+        #region ########## Log File Configuration Section ##########
 
         public static string errorLogPath = @"E:\projects\fame uploads\logs\error-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
         public static string transferLogPath = @"E:\projects\fame uploads\logs\transfer-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log";
         public static string sysLogPath = @"E:\projects\fame uploads\logs\system-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log";
 
-#endregion
+        #endregion
 
-#region ########## Program Configuration Section ##########
+        #region ########## Program Configuration Section ##########
 
         public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
         public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
@@ -58,14 +58,14 @@ namespace FameDocumentUploaderSvc
 
         #endregion
 
-#region ########## LDAP Configuration Settings ##########
+        #region ########## LDAP Configuration Settings ##########
 
         public const string cfgLDAPServer = @"walton01.wac.local:389";
         public const string cfgLDAPSam = @"WAC\famedocs";
         public const string cfgLDAPUser = @"famedocs";
         public const string cfgLDAPPass = @"Potok4";
 
-#endregion
+        #endregion
 
     }
 }
