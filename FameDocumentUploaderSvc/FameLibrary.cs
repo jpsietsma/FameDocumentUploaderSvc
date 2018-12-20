@@ -17,8 +17,22 @@ using FameDocumentUploaderSvc.Models;
 namespace FameDocumentUploaderSvc
 {
     public static class FameLibrary
-    {      
-        
+    {
+        #region Development Methods
+
+            //Display console output during testing
+            public static void ShowVerboseOutput(bool useVerbose, string filename, string changetype, string filepath)
+            {
+                if (useVerbose)
+                {
+                    Console.WriteLine(filename + " has been " + changetype + " to FAME.  Database has been updated. ");
+                    Console.WriteLine(filepath);
+                    Console.WriteLine();
+                }                                  
+            }
+
+        #endregion
+
         #region Logging Method Definitions...
 
             //logs event to the Windows Event Log as event type information
@@ -74,8 +88,10 @@ namespace FameDocumentUploaderSvc
 
                             logTypePath = Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
 
+                            LogWindowsEvent(message, EventLogEntryType.Error);
+
                             break;
-                        }
+                    }
                 }
 
                 using (System.IO.StreamWriter file = new System.IO.StreamWriter(logTypePath, true))
@@ -112,7 +128,10 @@ namespace FameDocumentUploaderSvc
                                 {
                                     message += "Invalid Farm ID or Contractor - " + (arg.Name).Split('_')[1] + " - upload cancelled.";
                                     file.WriteLine(message);
+                                                                    
                                 }
+
+                                LogWindowsEvent(message, EventLogEntryType.Warning);
 
                             }
                             else if (errSub == "invalidDocType")
@@ -121,8 +140,11 @@ namespace FameDocumentUploaderSvc
                                 {
                                     message += "Invalid Document Type - " + (arg.Name).Split('_')[0] + " - upload cancelled.";
                                     file.WriteLine(message);
+                                                                    
                                 }
-                            }
+
+                                LogWindowsEvent(message, EventLogEntryType.Warning);
+                            }                                                       
 
                             break;
                         }
@@ -134,7 +156,10 @@ namespace FameDocumentUploaderSvc
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
+                                                            
                             }
+
+                            LogWindowsEvent(message);
 
                             break;
                         }
@@ -146,7 +171,10 @@ namespace FameDocumentUploaderSvc
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
+                                                            
                             }
+
+                            LogWindowsEvent(message);
 
                             break;
                         }
@@ -165,9 +193,12 @@ namespace FameDocumentUploaderSvc
 
                 CheckLogFiles("system");
                 using (StreamWriter file = new StreamWriter(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
-                {
+                {   
                     file.WriteLine(message);
+                    file.Close();
                 }
+
+                LogWindowsEvent(message);
 
             }
 
@@ -184,8 +215,10 @@ namespace FameDocumentUploaderSvc
                     {
                         using (FileStream fs = File.Create(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
                         {
-                            LogWindowsEvent(DateTime.Now.ToString() + " - Daily Error Log Does not exist, the file has been created", EventLogEntryType.Warning);
+                            
                         }
+
+                        WriteFameLog(" - Daily Error Log Does not exist, the file has been created");
                     }
                 }
 
@@ -195,8 +228,10 @@ namespace FameDocumentUploaderSvc
                     {
                         using (FileStream fs = File.Create(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
                         {
-                            LogWindowsEvent(DateTime.Now.ToString() + " - Daily transfer Log Does not exist, the file has been created.", EventLogEntryType.Warning);
+                            
                         }
+
+                        WriteFameLog(" - Daily transfer Log Does not exist, the file has been created.");
                     }
                 }
 
@@ -206,8 +241,10 @@ namespace FameDocumentUploaderSvc
                     {
                         using (FileStream fs = File.Create(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
                         {
-                            LogWindowsEvent(DateTime.Now.ToString() + " - Daily System Log Does not exist, the file has been created.", EventLogEntryType.Warning);
+                            
                         }
+
+                        WriteFameLog(" - Daily System Log Does not exist, the file has been created.");
                     }
                 }
             }
@@ -508,110 +545,70 @@ namespace FameDocumentUploaderSvc
             /// <param name="e">FileSystemEventArgs object of the file.created action</param>
             public static void OnFileDropped(object source, FileSystemEventArgs e)
             {
-                FameBaseDocument baseDoc = new FameBaseDocument(e);              
-            
-                String[] nameParts = e.Name.Split('_');
-                string wacFarmID = nameParts[1];
-                string wacDocTypeFolderSectorCode = string.Empty;
-                string wacDocTypeSectorCode = string.Empty;
+                FameBaseDocument baseDoc = new FameBaseDocument(e);                        
 
-                string fileSubPath = null;
-                string finalFilePath = null;
-
-                int pk1 = 0; //represents the pk_participant or pk_farmBusiness
-                int? pk2 = null; //If doctype is ASR then represents pk_asrAg, if doctype is WFP2 then represents pk_form_wfp2
-                int? pk3 = null; //???
-
-                //Check document type and set options as per supplied type
                 switch (baseDoc.DocumentType)
                 {
 
                     #region WAC Participant Document Types...
+                    case "ASB":
+                    {
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "A_ASB", baseDoc.DocumentType);
+                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                            NewParticipantDocument.AssignPK(2, null);
+                            NewParticipantDocument.AssignPK(3, null);
+
+                        ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+
+                        break;
+                    }
 
                     case "ASR":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null; //Always null with ASRs
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            fileSubPath = @"Final Documentation\ASRs";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "NMCP":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMCP", baseDoc.DocumentType);
-                            
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            wacDocTypeFolderSectorCode = "A_NMCP";
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            fileSubPath = @"Final Documentation\Nutrient Mgmt\Nm Credits";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "NMP":
                         {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\NM Plans", "A_NMP", baseDoc.DocumentType);
-                        
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\NM Plans", "A_NMP", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            wacDocTypeFolderSectorCode = "A_NMP";
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            fileSubPath = @"Final Documentation\Nutrient Mgmt\Nm Plans";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "WFP0":
                     case "WFP-0":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_WFP0", @"WFP-0");    
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_WFP0", @"WFP-0");
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_WFP0";
-
-                            fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-0";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
@@ -619,22 +616,12 @@ namespace FameDocumentUploaderSvc
                     case "WFP-1":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_WFP1", @"WFP-1");
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_WFP1";
-
-                            fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-1";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
@@ -642,44 +629,24 @@ namespace FameDocumentUploaderSvc
                     case "WFP-2":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-2", "A_WFP2", @"WFP-2");
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_WFP2";
-
-                            fileSubPath = @"Final Documentation\WFP-0,1,2 COS\WFP-2";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "AEM":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "AEM", "A_AEM", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_AEM";
-
-                            fileSubPath = @"AEM";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
@@ -687,22 +654,12 @@ namespace FameDocumentUploaderSvc
                     case "TIER-1":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier1", "A_TIER1", @"TIER-1");
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_TIER1";
-
-                            fileSubPath = @"AEM\Tier1";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
@@ -710,110 +667,60 @@ namespace FameDocumentUploaderSvc
                     case "TIER-2":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier2", "A_TIER2", @"TIER-2");
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_TIER2";
-
-                            fileSubPath = @"AEM\Tier2";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "ALTR":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "Correspondence", "A_ALTR", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_ALTR";
-
-                            fileSubPath = @"Correspondence";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "COS":
                         {
                             FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2, COS\COS", "A_OVERFORM", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-
-                            wacDocTypeFolderSectorCode = "A_OVERFORM";
-
-                            fileSubPath = @"Final Documentation\WFP-0,1,2 COS\COS";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
 
                     case "CRP1":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);    
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_OVERFORM";
-
-                            fileSubPath = $@"Procurement\CREP";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");                
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine();
                             break;
                         }
 
                     case "OM":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType);    
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType);
+                                NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                                NewParticipantDocument.AssignPK(2, null);
+                                NewParticipantDocument.AssignPK(3, null);
 
-                            pk1 = GetFarmBusinessByFarmId(wacFarmID);
-                            pk2 = null;
-                            pk3 = null;
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
-                            wacDocTypeFolderSectorCode = "A_FORMWAC";
-
-                            fileSubPath = @"Final Documentation\O&Ms";
-
-                            //Write success messages to FAME log and Windows Event log
-                            WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
-                            LogWindowsEvent(" - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-
-                            Console.WriteLine(e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
-                            Console.WriteLine(finalFilePath);
-                            Console.WriteLine();
                             break;
                         }
                 
@@ -825,28 +732,32 @@ namespace FameDocumentUploaderSvc
                     case "LIABILITY":
                     case "CERTLIAB":
                         {
-                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, "General Liability", "CONT_INS", "CERTLIAB");
+                            FameContractorDocument NewContractorDocument = baseDoc.ConvertToContractorDocument(e, "General Liability", "CONT_INS", "CERTLIAB");
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
+                            ProcessUploadAttempt(e, NewContractorDocument.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode, 
-                                       NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
+                            AddFameDoc(NewContractorDocument.FinalFilePath, NewContractorDocument.DocumentName, NewContractorDocument.DocumentTypeFolderSectorCode, 
+                                       NewContractorDocument.PK1, NewContractorDocument.PK2, NewContractorDocument.PK3, NewContractorDocument.WacUploadUser, out string errorMessage);
+
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewContractorDocument.FinalFilePath);
 
                             break;
                         }
 
                     case "WORKCOMP":
                         {
-                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, "Workers Comp", "CONT_COMP", baseDoc.DocumentType);
+                            FameContractorDocument NewContractorDocument = baseDoc.ConvertToContractorDocument(e, "Workers Comp", "CONT_COMP", baseDoc.DocumentType);
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
+                            ProcessUploadAttempt(e, NewContractorDocument.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode,
-                                NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
+                            AddFameDoc(NewContractorDocument.FinalFilePath, NewContractorDocument.DocumentName, NewContractorDocument.DocumentTypeFolderSectorCode,
+                                NewContractorDocument.PK1, NewContractorDocument.PK2, NewContractorDocument.PK3, NewContractorDocument.WacUploadUser, out string errorMessage);
+
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewContractorDocument.FinalFilePath);
 
                             break;
                         }
@@ -854,14 +765,25 @@ namespace FameDocumentUploaderSvc
                     case "IRSW9F":
                     case "IRSW9":
                         {
-                            FameContractorDocument NewContractorDoc = baseDoc.ConvertToContractorDocument(e, @"W-9", "CONT_IRS", "IRSW9");
+                            IFameDocument NewIRSW9Document = baseDoc;
+
+                            if (NewIRSW9Document.DetermineDocEntityType() == "participant")
+                            {
+                                NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "A_PART_W9", baseDoc.DocumentType);
+                            }
+                            else if(NewIRSW9Document.DetermineDocEntityType() == "contractor")
+                            {
+                                NewIRSW9Document = NewIRSW9Document.ConvertToContractorDocument(e, "W-9", "A_CONT_W9", baseDoc.DocumentType);
+                            }
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, NewContractorDoc.FinalFilePath);
+                            ProcessUploadAttempt(e, NewIRSW9Document.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(NewContractorDoc.FinalFilePath, NewContractorDoc.DocumentName, NewContractorDoc.DocumentTypeFolderSectorCode,
-                                NewContractorDoc.PK1, NewContractorDoc.PK2, NewContractorDoc.PK3, NewContractorDoc.WacUploadUser, out string errorMessage);
+                            AddFameDoc(NewIRSW9Document.FinalFilePath, NewIRSW9Document.DocumentName, NewIRSW9Document.DocumentTypeFolderSectorCode,
+                                NewIRSW9Document.PK1, NewIRSW9Document.PK2, NewIRSW9Document.PK3, NewIRSW9Document.WacUploadUser, out string errorMessage);
+
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewIRSW9Document.FinalFilePath);
 
                             break;
                         }
@@ -954,6 +876,8 @@ namespace FameDocumentUploaderSvc
                     //Write success messages to FAME log and Windows Event log
                     WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + finalFilePath);
                     LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
+
+                    Console.WriteLine(e.Name + " has been successfully uploaded to " + finalFilePath);
                 }
                 else
                 {
@@ -968,29 +892,7 @@ namespace FameDocumentUploaderSvc
                     Console.WriteLine($@"{ uploadError }");
                 }
 
-            }       
-            
-            //Build final destination file path for contractor document
-            /// <summary>
-            /// Build FinalUploadPath string, represents final path for file upload
-            /// </summary>
-            /// <param name="contractorDoc">Contractor document for which to build move destination path</param>
-            /// <returns>string representing move destination final path</returns>
-            public static string BuildUploadFilePath(this FameContractorDocument contractorDoc)
-            {
-                return $@"{ Configuration.wacContractorHome }\{ contractorDoc.ContractorName }\{ contractorDoc.FinalSubPath }\{ contractorDoc.DocumentName }";
-            }
-
-            //Build final destination file path for participant document
-            /// <summary>
-            /// Build FinalUploadPath string, represents final path for file upload
-            /// </summary>
-            /// <param name="participantDoc">Participant document for which to build move destination path</param>
-            /// <returns>string representing move destination final path</returns>
-            public static string BuildUploadFilePath(this FameParticipantDocument participantDoc)
-            {
-                return $@"{ Configuration.wacFarmHome }\{ participantDoc.FarmID }\{ participantDoc.FinalSubPath }\{ participantDoc.DocumentName }";
-            }
+            }                  
                 
             //Build sql, execute query string for inserting document records
             /// <summary>
@@ -1044,6 +946,8 @@ namespace FameDocumentUploaderSvc
 
                 return finalStatus;
             }
+
+            
             
         #endregion
 
@@ -1152,6 +1056,73 @@ namespace FameDocumentUploaderSvc
                     NewParticipantDocument.AssignPK(3, null);
 
                     return NewParticipantDocument;
+                }
+
+                //Determines if document is participant or contractor document
+                /// <summary>
+                /// Determine if document is a participant or contractor document based on DocumentEntity
+                /// </summary>
+                /// <param name="doc">Document to check type on</param>
+                /// <returns>string either 'participant' or 'contractor'</returns>
+                public static string DetermineDocEntityType(this IFameDocument doc)
+                {
+                    if (true)
+                    {
+                        Console.WriteLine($@"Document Type: { doc.GetType() }");
+                        Console.WriteLine();
+                    }
+
+                    if (FameLibrary.GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
+                    {
+                        if (FameLibrary.GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
+                        {
+                            return "contractor";
+                        }
+
+                        return null;
+                    }
+                    else
+                    {
+                        return "participant";
+                    }
+                }
+                
+                public static bool AddFameDoc(IFameDocument NewDocument, out string errorMessage)
+                {
+                    bool finalStatus;
+                    int queryResult;
+
+                    string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
+
+                    string queryString = $@"
+                            INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
+                                ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3])
+                            VALUES
+                                ('{ NewDocument.FinalFilePath }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }')
+                            ";
+
+                    using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+                    {
+                        try
+                        {
+                            conn.Open();
+                            SqlCommand query = new SqlCommand(queryString, conn);
+                            queryResult = query.ExecuteNonQuery();
+                            conn.Close();
+
+                            errorMessage = null;
+                            finalStatus = true;
+                        }
+                        catch (Exception e)
+                        {
+                            WriteFameLog("error", e.Message);
+
+                            errorMessage = e.Message;
+                            finalStatus = false;
+                        }
+                    }
+
+                    return finalStatus;
                 }
 
         #endregion

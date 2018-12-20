@@ -1,4 +1,6 @@
-﻿namespace FameDocumentUploaderSvc.Models
+﻿using System.IO;
+
+namespace FameDocumentUploaderSvc.Models
 {
     public interface IFameDocument
     {
@@ -18,5 +20,9 @@
 
         bool AssignPK(int pkNum, int? pkValue);
         void BuildUploadFilePath();
+
+        FameContractorDocument ConvertToContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector);
+
+        FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector);
     }
 }

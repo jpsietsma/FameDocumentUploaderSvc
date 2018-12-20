@@ -46,28 +46,27 @@ namespace FameDocumentUploaderSvc.Models
         {
 
         }
-
-        //Determines if document is participant or contractor document
-        /// <summary>
-        /// Determine if document is a participant or contractor document based on DocumentEntity
-        /// </summary>
-        /// <param name="doc">Document to check type on</param>
-        /// <returns>string either 'participant' or 'contractor'</returns>
-        public static string DetermineDocEntityType(this IFameDocument doc)
+        
+        public FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
         {
-            if (FameLibrary.GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
-            {
-                if (FameLibrary.GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
-                {
-                    return "contractor";
-                }
+            FameParticipantDocument NewParticipantDocument = new FameParticipantDocument(e, fileSubPath, folderSector, docSector);
 
-                return null;
-            }
-            else
-            {
-                return "participant";
-            }
+            NewParticipantDocument.AssignPK(1, FameLibrary.GetFarmBusinessByFarmId(NewParticipantDocument.FarmID));
+            NewParticipantDocument.AssignPK(2, null);
+            NewParticipantDocument.AssignPK(3, null);
+
+            return NewParticipantDocument;
+        }
+
+        public FameContractorDocument ConvertToContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+        {
+            FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
+
+            NewContractorDocument.AssignPK(1, FameLibrary.GetParticipantIDFromContractor(NewContractorDocument.ContractorName));
+            NewContractorDocument.AssignPK(2, null);
+            NewContractorDocument.AssignPK(3, null);
+
+            return NewContractorDocument;
         }
 
     }

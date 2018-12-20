@@ -42,9 +42,9 @@ namespace FameDocumentUploaderSvc
 
         #region ########## Log File Configuration Section ##########
 
-        public static string errorLogPath = @"E:\projects\fame uploads\logs\error-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
-        public static string transferLogPath = @"E:\projects\fame uploads\logs\transfer-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log";
-        public static string sysLogPath = @"E:\projects\fame uploads\logs\system-logs\" + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log";
+        public static string errorLogPath = @"E:\projects\fame uploads\logs\error-logs\";
+        public static string transferLogPath = @"E:\projects\fame uploads\logs\transfer-logs\";
+        public static string sysLogPath = @"E:\projects\fame uploads\logs\system-logs\";
 
         #endregion
 
