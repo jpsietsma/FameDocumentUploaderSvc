@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 
 namespace FameDocumentUploaderSvc.Models
 {
-    public class FameContractorDocument : FameBaseDocument, IFameDocument
+    public class FameContractorDocument : FameBaseDocument, IFameDocument, IFameContractorDocument
     {
         public string ContractorName { get; set; }
+        public int ParticipantID { get; set; }
 
         public FameContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector) : base(e)
         {

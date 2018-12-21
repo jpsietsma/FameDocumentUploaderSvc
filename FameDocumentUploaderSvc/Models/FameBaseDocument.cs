@@ -21,10 +21,10 @@ namespace FameDocumentUploaderSvc.Models
         public int? PK3 { get; set; }
         public string DocumentTypeSectorCode { get; set; }
         public string DocumentTypeFolderSectorCode { get; set; }
-        public int ParticipantID { get; set; }
         public string FinalFilePath { get; set; }
         public string FinalSubPath { get; set; }
         public string WacUploadUser { get; set; }
+        public bool ValidEntity { get; set; }
 
         public FameBaseDocument(FileSystemEventArgs e)
         {

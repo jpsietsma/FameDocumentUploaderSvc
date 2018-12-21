@@ -551,9 +551,9 @@ namespace FameDocumentUploaderSvc
                 {
 
                     #region WAC Participant Document Types...
-                    case "ASB":
+                    case "ASBUILT":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "A_ASB", baseDoc.DocumentType);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "A_ASBUILT", baseDoc.DocumentType);
                             NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                             NewParticipantDocument.AssignPK(2, null);
                             NewParticipantDocument.AssignPK(3, null);
@@ -732,16 +732,30 @@ namespace FameDocumentUploaderSvc
                     case "LIABILITY":
                     case "CERTLIAB":
                         {
-                            FameContractorDocument NewContractorDocument = baseDoc.ConvertToContractorDocument(e, "General Liability", "CONT_INS", "CERTLIAB");
+                            IFameDocument NewLiabilityDocument = baseDoc;
+                            bool validEntity = false;
+
+                            if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
+                            {
+                                NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "W-9", "A_PART_W9", baseDoc.DocumentType);
+                            }
+                            else if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
+                            {
+                                NewLiabilityDocument = NewLiabilityDocument.ConvertToContractorDocument(e, "W-9", "A_CONT_W9", baseDoc.DocumentType);
+                            }
+                            else
+                            {
+                                throw new InvalidDocumentEntityException(e);
+                            }
 
                             //Attempt to process the upload request and move the file
-                            ProcessUploadAttempt(e, NewContractorDocument.FinalFilePath);
+                            ProcessUploadAttempt(e, NewLiabilityDocument.FinalFilePath);
 
                             //Add document information to FAME database
-                            AddFameDoc(NewContractorDocument.FinalFilePath, NewContractorDocument.DocumentName, NewContractorDocument.DocumentTypeFolderSectorCode, 
-                                       NewContractorDocument.PK1, NewContractorDocument.PK2, NewContractorDocument.PK3, NewContractorDocument.WacUploadUser, out string errorMessage);
+                            AddFameDoc(NewLiabilityDocument.FinalFilePath, NewLiabilityDocument.DocumentName, NewLiabilityDocument.DocumentTypeFolderSectorCode,
+                                       NewLiabilityDocument.PK1, NewLiabilityDocument.PK2, NewLiabilityDocument.PK3, NewLiabilityDocument.WacUploadUser, out string errorMessage);
 
-                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewContractorDocument.FinalFilePath);
+                            ShowVerboseOutput(true, e.Name, e.ChangeType.ToString(), NewLiabilityDocument.FinalFilePath);
 
                             break;
                         }
@@ -766,14 +780,19 @@ namespace FameDocumentUploaderSvc
                     case "IRSW9":
                         {
                             IFameDocument NewIRSW9Document = baseDoc;
+                            bool validEntity = false;
 
-                            if (NewIRSW9Document.DetermineDocEntityType() == "participant")
+                            if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
                             {
                                 NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "A_PART_W9", baseDoc.DocumentType);
                             }
-                            else if(NewIRSW9Document.DetermineDocEntityType() == "contractor")
+                            else if(NewIRSW9Document.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                             {
                                 NewIRSW9Document = NewIRSW9Document.ConvertToContractorDocument(e, "W-9", "A_CONT_W9", baseDoc.DocumentType);
+                            }
+                            else
+                            {                                
+                                throw new InvalidDocumentEntityException(e);                                
                             }
 
                             //Attempt to process the upload request and move the file
@@ -1063,26 +1082,25 @@ namespace FameDocumentUploaderSvc
                 /// Determine if document is a participant or contractor document based on DocumentEntity
                 /// </summary>
                 /// <param name="doc">Document to check type on</param>
+                /// <param name="validType">true if validEntityType else false</param>
                 /// <returns>string either 'participant' or 'contractor'</returns>
-                public static string DetermineDocEntityType(this IFameDocument doc)
+                public static string DetermineDocEntityType(this IFameDocument doc, out bool validType)
                 {
-                    if (true)
-                    {
-                        Console.WriteLine($@"Document Type: { doc.GetType() }");
-                        Console.WriteLine();
-                    }
 
-                    if (FameLibrary.GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
+                    if (GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
                     {
-                        if (FameLibrary.GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
+                        if (GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
                         {
+                            validType = true;
                             return "contractor";
                         }
 
+                        validType = false;
                         return null;
                     }
                     else
                     {
+                        validType = true;
                         return "participant";
                     }
                 }
