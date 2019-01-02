@@ -553,7 +553,7 @@ namespace FameDocumentUploaderSvc
                     #region WAC Participant Document Types...
                     case "ASBUILT":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "A_ASBUILT", baseDoc.DocumentType);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "", baseDoc.DocumentType);
                             NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                             NewParticipantDocument.AssignPK(2, null);
                             NewParticipantDocument.AssignPK(3, null);
@@ -577,7 +577,7 @@ namespace FameDocumentUploaderSvc
 
                     case "NMCP":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMCP", baseDoc.DocumentType);
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMP", baseDoc.DocumentType);
                                 NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                                 NewParticipantDocument.AssignPK(2, null);
                                 NewParticipantDocument.AssignPK(3, null);
@@ -602,7 +602,7 @@ namespace FameDocumentUploaderSvc
                     case "WFP0":
                     case "WFP-0":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_WFP0", @"WFP-0");
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_OVERFORM", @"WFP-0");
                                 NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                                 NewParticipantDocument.AssignPK(2, null);
                                 NewParticipantDocument.AssignPK(3, null);
@@ -615,7 +615,7 @@ namespace FameDocumentUploaderSvc
                     case "WFP1":
                     case "WFP-1":
                         {
-                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_WFP1", @"WFP-1");
+                            FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_OVERFORM", @"WFP-1");
                                 NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                                 NewParticipantDocument.AssignPK(2, null);
                                 NewParticipantDocument.AssignPK(3, null);
@@ -1023,14 +1023,14 @@ namespace FameDocumentUploaderSvc
                 if (status)
                 {
                     fameWatcher.EnableRaisingEvents = status;
-                    LogWindowsEvent("FAME upload monitoring has successfully started", EventLogEntryType.Information);
-                    WriteFameLog(" - FAME upload monitoring has successfully started.  Files will now be uploaded to the FAME database.");
+                    LogWindowsEvent("FAME upload monitoring service has successfully started", EventLogEntryType.Information);
+                    WriteFameLog(" - FAME upload monitoring service has successfully started.  Files will now be uploaded to the FAME database.");
                 }
                 else
                 {
                     fameWatcher.EnableRaisingEvents = status;
-                    LogWindowsEvent("FAME upload monitoring has been stopped", EventLogEntryType.Warning);
-                    WriteFameLog(" - FAME upload monitoring has been stopped.  No files will be uploaded until it has been restarted.");
+                    LogWindowsEvent("FAME upload monitoring service has been stopped", EventLogEntryType.Warning);
+                    WriteFameLog(" - FAME upload monitoring service has been stopped.  No files will be uploaded until it has been restarted.");
                 }
 
             }
@@ -1039,7 +1039,7 @@ namespace FameDocumentUploaderSvc
 
         #region Extension Methods
 
-            #region FameDocument class extension methods
+            #region FameBaseDocument class extension methods
                             
                 //Convert  FameBaseDocument to FameContractorDocument
                 /// <summary>
@@ -1077,6 +1077,10 @@ namespace FameDocumentUploaderSvc
                     return NewParticipantDocument;
                 }
 
+            #endregion
+
+            #region IFameDocument class extension methods
+
                 //Determines if document is participant or contractor document
                 /// <summary>
                 /// Determine if document is a participant or contractor document based on DocumentEntity
@@ -1105,6 +1109,14 @@ namespace FameDocumentUploaderSvc
                     }
                 }
                 
+
+                //Insert document information into the FAME database
+                /// <summary>
+                /// Insert document info into the FAME database
+                /// </summary>
+                /// <param name="NewDocument">Document to add to FAME</param>
+                /// <param name="errorMessage">populates any error message received when upload fails</param>
+                /// <returns></returns>
                 public static bool AddFameDoc(IFameDocument NewDocument, out string errorMessage)
                 {
                     bool finalStatus;
@@ -1143,7 +1155,7 @@ namespace FameDocumentUploaderSvc
                     return finalStatus;
                 }
 
-        #endregion
+            #endregion
 
         #endregion
     }
