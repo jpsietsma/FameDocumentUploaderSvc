@@ -817,35 +817,7 @@ namespace FameDocumentUploaderSvc
                         }
 
                 }
-
-                //try
-                //{
-                //    //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
-                //    if (EventLog.SourceExists("Security"))
-                //    {
-                //        EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
-
-                //        foreach (EventLogEntry entry in log.Entries)
-                //        {
-                //            if ((entry.Message.Contains(Configuration.wacFarmHome) || entry.Message.Contains(Configuration.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
-                //            {
-                //                wacDocUploader = FameLibrary.GetUploadUserName(entry.Message, e.Name);
-                //            }
-                //        }
-                //    }
-                //    else
-                //    {
-                //        WriteFameLog("Specified event source: 'security' does not exist");
-                //        LogEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
-                //    }
-
-                //}
-                //catch (Exception ex)
-                //{
-
-                //    throw new Exception(ex.Message);
-                //}
-
+                            
             }
 
             //Move the file to the appropriate destination based on doc type and participant type
@@ -1035,20 +1007,63 @@ namespace FameDocumentUploaderSvc
 
             }
 
+            //Get username of user who dropped file for upload
+            /// <summary>
+            /// Get the username of the user who dropped file for upload
+            /// </summary>
+            /// <param name="fileName">name of file dropped</param>
+            /// <param name="e">FileSystemEventArgs object which represents drop</param>
+            /// <returns>Windows login of user who dropped file</returns>
+            public static string GetUploadUserFromEventLog(string fileName, FileSystemEventArgs e)
+            {
+
+                string finalUser = string.Empty;
+
+                try
+                {
+                    //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
+                    if (EventLog.SourceExists("Security"))
+                    {
+                        EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
+
+                        foreach (EventLogEntry entry in log.Entries)
+                        {
+                            if ((entry.Message.Contains(Configuration.wacFarmHome) || entry.Message.Contains(Configuration.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
+                            {
+                                finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        WriteFameLog("Specified event source: 'security' does not exist");
+                        LogWindowsEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);                        
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
+                
+                return finalUser;
+
+            }
+
         #endregion
 
         #region Extension Methods
 
-            #region FameBaseDocument class extension methods
-                            
-                //Convert  FameBaseDocument to FameContractorDocument
-                /// <summary>
-                /// Convert the uploaded base document to a Contractor document
-                /// </summary>
-                /// <param name="baseDoc">Base document to convert</param>
-                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
-                /// <returns>FameContractorDocument object pre-populated</returns>
-                public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+        #region FameBaseDocument class extension methods
+
+        //Convert  FameBaseDocument to FameContractorDocument
+        /// <summary>
+        /// Convert the uploaded base document to a Contractor document
+        /// </summary>
+        /// <param name="baseDoc">Base document to convert</param>
+        /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
+        /// <returns>FameContractorDocument object pre-populated</returns>
+        public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
                 {
                     FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
 
@@ -1107,8 +1122,7 @@ namespace FameDocumentUploaderSvc
                         validType = true;
                         return "participant";
                     }
-                }
-                
+                }                
 
                 //Insert document information into the FAME database
                 /// <summary>
