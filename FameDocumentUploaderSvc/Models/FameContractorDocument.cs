@@ -78,6 +78,7 @@ namespace FameDocumentUploaderSvc.Models
         public override void BuildUploadFilePath()
         {
             FinalFilePath = $@"{ Configuration.wacContractorHome }\{ ContractorName }\{ FinalSubPath }\{ DocumentName }";
+            FinalFilePath = FinalFilePath.Replace(@"\\\\", @"\\");
         }
 
     }

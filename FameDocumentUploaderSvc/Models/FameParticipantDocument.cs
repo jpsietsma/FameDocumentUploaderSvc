@@ -28,8 +28,27 @@ namespace FameDocumentUploaderSvc.Models
             //Entity that document belongs to (FarmID)
             FarmID = nameParts[1];
 
+            //Set the file subpath based on file type
+            FinalSubPath = fileSubPath;
+
+            
+            if (FarmID.Contains(@".pdf"))
+            {
+                FarmID = FarmID.Replace(@".pdf", "");
+            }
+            
             //Farm Business ID
             FarmBusinessID = FameLibrary.GetFarmBusinessByFarmId(FarmID);
+
+            if (FarmBusinessID != 0)
+            {
+                ValidEntity = true;
+            }
+
+            WacUploadUser = "FAME_uploader";
+
+            BuildUploadFilePath();
+
         }
 
         //Assign the passed pkValue to the passed pkNum
@@ -81,7 +100,7 @@ namespace FameDocumentUploaderSvc.Models
         /// <returns>string representing move destination final path</returns>
         public override void BuildUploadFilePath()
         {
-            FinalFilePath = $@"{ Configuration.wacFarmHome }\{ FarmID }\{ FinalSubPath }\{ DocumentName }";
+            FinalFilePath = $@"{ Configuration.wacFarmHome }{ FarmID }\{ FinalSubPath }\{ DocumentName }";
         }
 
     

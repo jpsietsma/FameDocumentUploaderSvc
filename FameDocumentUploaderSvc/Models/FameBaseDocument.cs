@@ -35,6 +35,11 @@ namespace FameDocumentUploaderSvc.Models
             DocumentType = nameParts[0];
             DocumentEntity = nameParts[1];
 
+            if (DocumentEntity.Contains(@".pdf"))
+            {
+                DocumentEntity = nameParts[1].Replace(@".pdf", "");
+            }
+            
         }
         
         public virtual bool AssignPK(int pkNum, int? pkValue)
@@ -54,6 +59,10 @@ namespace FameDocumentUploaderSvc.Models
             NewParticipantDocument.AssignPK(1, FameLibrary.GetFarmBusinessByFarmId(NewParticipantDocument.FarmID));
             NewParticipantDocument.AssignPK(2, null);
             NewParticipantDocument.AssignPK(3, null);
+            NewParticipantDocument.FarmID = NewParticipantDocument.DocumentEntity;
+            NewParticipantDocument.DocumentTypeFolderSectorCode = folderSector;
+            NewParticipantDocument.DocumentTypeSectorCode = docSector;
+            NewParticipantDocument.FinalSubPath = fileSubPath;
 
             return NewParticipantDocument;
         }
