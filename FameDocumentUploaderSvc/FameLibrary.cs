@@ -13,6 +13,7 @@ using System.Data;
 using System.Collections.Generic;
 using System.Timers;
 using FameDocumentUploaderSvc.Models;
+using System.Linq;
 
 namespace FameDocumentUploaderSvc
 {
@@ -263,7 +264,7 @@ namespace FameDocumentUploaderSvc
             {
                 int pk_FarmBusiness = 0;
 
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                 {
 
                     try
@@ -297,7 +298,7 @@ namespace FameDocumentUploaderSvc
             {
                 Int32? finalPK = null;
 
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                 {
                     try
                     {
@@ -327,7 +328,7 @@ namespace FameDocumentUploaderSvc
             {
                 string finalFarmID = string.Empty;
 
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                 {
 
                     try
@@ -418,11 +419,11 @@ namespace FameDocumentUploaderSvc
             }
 
             //Get WFP-3 Package PK by PackageName
-            public static int GetWfp3PackagePk(string packageName)
+            public static int GetWfp3PackagePkByPackageName(string packageName)
             {
                 int finalPk = 0;
 
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                 {
                     try
                     {
@@ -460,7 +461,7 @@ namespace FameDocumentUploaderSvc
                 bool sendSuccess = true;
 
                 //If enabled, build and sent failure email
-                if (ConfigurationManager.AppSettings["EnableUploadEmails"] == "true")
+                if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
                 {                
                     string mailRecipient = username;
 
@@ -716,6 +717,22 @@ namespace FameDocumentUploaderSvc
                         break;
                     }
 
+                    //For CREP
+                    case "FSA":
+                    {
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts & Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);
+                        NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
+                        NewParticipantDocument.AssignPK(2, null);
+                        NewParticipantDocument.AssignPK(3, null);
+
+                        //Attempt to process the upload request and move the file
+                        ProcessUploadAttempt(e, NewParticipantDocument);
+
+                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+
+                        break;
+                    }
+
                     case "NMCP":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMP", baseDoc.DocumentType);
@@ -749,9 +766,17 @@ namespace FameDocumentUploaderSvc
                     case "OM":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType);
+
+                            string packageName = NewParticipantDocument.DocumentName;
+                                packageName = packageName.Replace(@".pdf", "");
+                                packageName = packageName.Replace(@"OM_", "");
+                                                   
                             NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
+                            NewParticipantDocument.AssignPK(2, GetWfp3PackagePkByPackageName(packageName));
                             NewParticipantDocument.AssignPK(3, null);
+
+                        //Attempt to process the upload request and move the file
+                        ProcessUploadAttempt(e, NewParticipantDocument);
 
                         ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
@@ -843,6 +868,30 @@ namespace FameDocumentUploaderSvc
                     }                                                                                                                  
                                         
                     #endregion
+
+                    case "CORR":
+                    {
+                        IFameDocument NewCorrespondanceDocument = baseDoc;
+                        bool validEntity = false;
+
+                        if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
+                        {
+                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToParticipantDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType);
+                        }
+                        else if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
+                        {
+                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToContractorDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType);
+                        }
+                        else
+                        {
+                            throw new InvalidDocumentEntityException(e);
+                        }
+
+                        //Attempt to process the upload request and move the file
+                        ProcessUploadAttempt(e, NewCorrespondanceDocument);
+
+                        break;
+                    }
 
                     #region WAC Contractor Document Types...
 
@@ -991,7 +1040,7 @@ namespace FameDocumentUploaderSvc
                 }
                 else
                 {
-                    //Send email notification of successful upload
+                    //Send email notification of failed upload
                     SendUploadedFileEmail(e, newDoc.FinalFilePath, DateTime.Now, false, uploadError);
 
                     //Write failure messages to FAME log and Windows Event log
@@ -1027,12 +1076,12 @@ namespace FameDocumentUploaderSvc
 
                 string queryString = $@"
                     INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
-                        ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3])
+                        ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3], [filepath])
                     VALUES
-                        ('{ finalFilePath }', '{ docFileName }', '{ wacDocTypeSectorFolderCode }', '{ wacDocUploader }', '{ uploadTimestamp }', '{ wacDocUploader }', '{ uploadTimestamp }', '{ pk1 }', '{ pk2 }', '{ pk3 }')
+                        ('{ finalFilePath }', '{ docFileName }', '{ wacDocTypeSectorFolderCode }', 'Jimmy Test', '{ uploadTimestamp }', '{ wacDocUploader }', '{ uploadTimestamp }', '{ pk1 }', '{ pk2 }', '{ pk3 }', '{ finalFilePath }')
                     ";
 
-                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                 {
                     try
                     {
@@ -1071,7 +1120,7 @@ namespace FameDocumentUploaderSvc
             /// <param name="e">ElapsedEventArgs object</param>
             public static void MailTimer_Tick(object source, ElapsedEventArgs e)
                 {
-                    if (ConfigurationManager.AppSettings["EnableUploadEmails"] == "true")
+                    if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
                     {
                         //Do something if we have allowed sending emails through the configuration file
                     }
@@ -1089,18 +1138,7 @@ namespace FameDocumentUploaderSvc
                     Console.WriteLine("Worker Thread Status: Working");
                     Console.WriteLine();
                 }
-            }
-
-            //Get connection string by name from app.config 
-            /// <summary>
-            /// Retrieve connection string from app.config
-            /// </summary>
-            /// <param name="connectionName">Connection string name</param>
-            /// <returns>string representing the connection string</returns>
-            public static string GetConnectionString(string connectionName = Configuration.cfgConStrName)
-            {
-                return ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
-            }
+            }            
 
             //Toggles the FileSystemWatcher monitoring
             /// <summary>
@@ -1264,7 +1302,7 @@ namespace FameDocumentUploaderSvc
                                 ('{ NewDocument.FinalFilePath }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }')
                             ";
 
-                    using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+                    using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
                     {
                         try
                         {

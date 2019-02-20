@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
+    <Compile Include="ConfigurationHelperLibrary.cs" />
     <Compile Include="Models\FameBaseDocument.cs" />
     <Compile Include="Models\FameContractorDocument.cs" />
     <Compile Include="FameLibrary.cs" />
