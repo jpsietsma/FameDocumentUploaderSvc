@@ -38,11 +38,11 @@ namespace FameDocumentUploaderSvc
             fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnFileDropped);
 
             //Check log messages at predefined intervals and send emails if necessary.            
-            MailTimer.Elapsed += new ElapsedEventHandler(FameLibrary.MailTimer_Tick);
+            MailTimer.Elapsed += new ElapsedEventHandler(ConfigurationHelperLibrary.MailTimer_Tick);
 
 
             //This begins the actual file monitoring
-            FameLibrary.ToggleMonitoring(true, fameWatcher);
+            ConfigurationHelperLibrary.ToggleMonitoring(true, fameWatcher);
             WorkerTimer.Start();
             MailTimer.Start();
 
@@ -54,7 +54,7 @@ namespace FameDocumentUploaderSvc
         protected override void OnStop()
         {
 
-            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            ConfigurationHelperLibrary.ToggleMonitoring(false, fameWatcher);
             WorkerTimer.Stop();
             MailTimer.Stop();
         }
@@ -64,7 +64,7 @@ namespace FameDocumentUploaderSvc
         /// </summary>
         protected override void OnPause()
         {
-            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            ConfigurationHelperLibrary.ToggleMonitoring(false, fameWatcher);
             WorkerTimer.Stop();
             MailTimer.Stop();
         }
@@ -74,7 +74,7 @@ namespace FameDocumentUploaderSvc
         /// </summary>
         protected override void OnContinue()
         {
-            FameLibrary.ToggleMonitoring(true, fameWatcher);
+            ConfigurationHelperLibrary.ToggleMonitoring(true, fameWatcher);
             WorkerTimer.Start();
             MailTimer.Start();
 
@@ -85,7 +85,7 @@ namespace FameDocumentUploaderSvc
         /// </summary>
         protected override void OnShutdown()
         {
-            FameLibrary.ToggleMonitoring(false, fameWatcher);
+            ConfigurationHelperLibrary.ToggleMonitoring(false, fameWatcher);
             MailTimer.Stop();
             WorkerTimer.Stop();
         }

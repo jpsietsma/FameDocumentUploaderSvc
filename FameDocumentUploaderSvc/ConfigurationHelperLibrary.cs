@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace FameDocumentUploaderSvc
 {
 
-    //Class that helps grab information from app.config
+    //Class that helps grab configuration settings from app.config and sets program configurations
     /// <summary>
     /// Class which helps grab values from the app.config file and other configuration areas for the service
     /// </summary>
@@ -131,6 +135,105 @@ namespace FameDocumentUploaderSvc
                 bool convertInt = int.TryParse(ConfigurationManager.AppSettings["UploaderEmailPort"].ToString(), out int finalInt);
                 
                 return finalInt;
+            }
+
+        #endregion
+
+        #region Internal Program Configuration Methods...
+
+            //Runs when the mailtimer ticks.  Used for summary emails if sending emails are enabled
+            /// <summary>
+            /// If sending status emails are enabled, fires this method on decided interval
+            /// </summary>
+            /// <param name="source">Source object</param>
+            /// <param name="e">ElapsedEventArgs object</param>
+            public static void MailTimer_Tick(object source, ElapsedEventArgs e)
+            {
+                if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
+                {
+                    //Do something if we have allowed sending emails through the configuration file
+                }
+            }
+
+            //Timer thread to keep service running
+            /// <summary>
+            /// Timer thread to keep service running
+            /// </summary>
+            public static void ExecuteWorkerThread()
+            {
+                while (true)
+                {
+                    Thread.Sleep(Configuration.cfgWorkerInterval);
+                    Console.WriteLine("Worker Thread Status: Working");
+                    Console.WriteLine();
+                }
+            }
+
+            //Toggles the FileSystemWatcher monitoring
+            /// <summary>
+            /// Toggle the FileSystemWatcher monitoring of the configured watch directory
+            /// </summary>
+            /// <param name="status">True or false depending on if monitoring is running</param>
+            /// <param name="fameWatcher">FileSystemWatcher object to associate with</param>
+            public static void ToggleMonitoring(bool status, FileSystemWatcher fameWatcher)
+            {
+
+                if (status)
+                {
+                    fameWatcher.EnableRaisingEvents = status;
+                    FameLibrary.LogWindowsEvent("FAME upload monitoring service has successfully started", EventLogEntryType.Information);
+                    FameLibrary.WriteFameLog(" - FAME upload monitoring service has successfully started.  Files will now be uploaded to the FAME database.");
+                }
+                else
+                {
+                    fameWatcher.EnableRaisingEvents = status;
+                    FameLibrary.LogWindowsEvent("FAME upload monitoring service has been stopped", EventLogEntryType.Warning);
+                    FameLibrary.WriteFameLog(" - FAME upload monitoring service has been stopped.  No files will be uploaded until it has been restarted.");
+                }
+
+            }
+
+            //Get username of user who dropped file for upload
+            /// <summary>
+            /// Get the username of the user who dropped file for upload
+            /// </summary>
+            /// <param name="fileName">name of file dropped</param>
+            /// <param name="e">FileSystemEventArgs object which represents drop</param>
+            /// <returns>Windows login of user who dropped file</returns>
+            public static string GetUploadUserFromEventLog(string fileName, FileSystemEventArgs e)
+            {
+
+                string finalUser = string.Empty;
+
+                try
+                {
+                    //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
+                    if (EventLog.SourceExists("Security"))
+                    {
+                        EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
+
+                        foreach (EventLogEntry entry in log.Entries)
+                        {
+                            if ((entry.Message.Contains(Configuration.wacFarmHome) || entry.Message.Contains(Configuration.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
+                            {
+                                finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        FameLibrary.WriteFameLog("Specified event source: 'security' does not exist");
+                        FameLibrary.LogWindowsEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
+
+                return finalUser;
+
             }
 
         #endregion

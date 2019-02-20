@@ -953,7 +953,8 @@ namespace FameDocumentUploaderSvc
                         {
                             NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
                         }
-                        else if(NewIRSW9Document.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
+
+                        if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
                             NewIRSW9Document = NewIRSW9Document.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
                         }
@@ -1109,118 +1110,19 @@ namespace FameDocumentUploaderSvc
             
             
         #endregion
-
-        #region Internal Program Configuration Methods...
-
-            //Runs when the mailtimer ticks.  Used for summary emails if sending emails are enabled
-            /// <summary>
-            /// If sending status emails are enabled, fires this method on decided interval
-            /// </summary>
-            /// <param name="source">Source object</param>
-            /// <param name="e">ElapsedEventArgs object</param>
-            public static void MailTimer_Tick(object source, ElapsedEventArgs e)
-                {
-                    if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
-                    {
-                        //Do something if we have allowed sending emails through the configuration file
-                    }
-                }
-
-            //Timer thread to keep service running
-            /// <summary>
-            /// Timer thread to keep service running
-            /// </summary>
-            public static void ExecuteWorkerThread()
-            {
-                while (true)
-                {
-                    Thread.Sleep(Configuration.cfgWorkerInterval);
-                    Console.WriteLine("Worker Thread Status: Working");
-                    Console.WriteLine();
-                }
-            }            
-
-            //Toggles the FileSystemWatcher monitoring
-            /// <summary>
-            /// Toggle the FileSystemWatcher monitoring of the configured watch directory
-            /// </summary>
-            /// <param name="status">True or false depending on if monitoring is running</param>
-            /// <param name="fameWatcher">FileSystemWatcher object to associate with</param>
-            public static void ToggleMonitoring(bool status, FileSystemWatcher fameWatcher)
-            {
-
-                if (status)
-                {
-                    fameWatcher.EnableRaisingEvents = status;
-                    LogWindowsEvent("FAME upload monitoring service has successfully started", EventLogEntryType.Information);
-                    WriteFameLog(" - FAME upload monitoring service has successfully started.  Files will now be uploaded to the FAME database.");
-                }
-                else
-                {
-                    fameWatcher.EnableRaisingEvents = status;
-                    LogWindowsEvent("FAME upload monitoring service has been stopped", EventLogEntryType.Warning);
-                    WriteFameLog(" - FAME upload monitoring service has been stopped.  No files will be uploaded until it has been restarted.");
-                }
-
-            }
-
-            //Get username of user who dropped file for upload
-            /// <summary>
-            /// Get the username of the user who dropped file for upload
-            /// </summary>
-            /// <param name="fileName">name of file dropped</param>
-            /// <param name="e">FileSystemEventArgs object which represents drop</param>
-            /// <returns>Windows login of user who dropped file</returns>
-            public static string GetUploadUserFromEventLog(string fileName, FileSystemEventArgs e)
-            {
-
-                string finalUser = string.Empty;
-
-                try
-                {
-                    //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
-                    if (EventLog.SourceExists("Security"))
-                    {
-                        EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
-
-                        foreach (EventLogEntry entry in log.Entries)
-                        {
-                            if ((entry.Message.Contains(Configuration.wacFarmHome) || entry.Message.Contains(Configuration.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
-                            {
-                                finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        WriteFameLog("Specified event source: 'security' does not exist");
-                        LogWindowsEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);                        
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception(ex.Message);
-                }
                 
-                return finalUser;
-
-            }
-
-        #endregion
-
         #region Extension Methods
 
-        #region FameBaseDocument class extension methods
+            #region FameBaseDocument class extension methods
 
-        //Convert  FameBaseDocument to FameContractorDocument
-        /// <summary>
-        /// Convert the uploaded base document to a Contractor document
-        /// </summary>
-        /// <param name="baseDoc">Base document to convert</param>
-        /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
-        /// <returns>FameContractorDocument object pre-populated</returns>
-        public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+                //Convert  FameBaseDocument to FameContractorDocument
+                /// <summary>
+                /// Convert the uploaded base document to a Contractor document
+                /// </summary>
+                /// <param name="baseDoc">Base document to convert</param>
+                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
+                /// <returns>FameContractorDocument object pre-populated</returns>
+                public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
                 {
                     FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
 
@@ -1253,80 +1155,80 @@ namespace FameDocumentUploaderSvc
 
             #region IFameDocument class extension methods
 
-                //Determines if document is participant or contractor document
-                /// <summary>
-                /// Determine if document is a participant or contractor document based on DocumentEntity
-                /// </summary>
-                /// <param name="doc">Document to check type on</param>
-                /// <param name="validType">true if validEntityType else false</param>
-                /// <returns>string either 'participant' or 'contractor'</returns>
-                public static string DetermineDocEntityType(this IFameDocument doc, out bool validType)
+            //Determines if document is participant or contractor document
+            /// <summary>
+            /// Determine if document is a participant or contractor document based on DocumentEntity
+            /// </summary>
+            /// <param name="doc">Document to check type on</param>
+            /// <param name="validType">true if validEntityType else false</param>
+            /// <returns>string either 'participant' or 'contractor'</returns>
+            public static string DetermineDocEntityType(this IFameDocument doc, out bool validType)
+            {
+
+                if (GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
                 {
-
-                    if (GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
-                    {
-                        if (GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
-                        {
-                            validType = true;
-                            return "contractor";
-                        }
-
-                        validType = false;
-                        return null;
-                    }
-                    else
+                    if (GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
                     {
                         validType = true;
-                        return "participant";
+                        return "contractor";
                     }
-                }                
 
-                //Insert document information into the FAME database
-                /// <summary>
-                /// Insert document info into the FAME database
-                /// </summary>
-                /// <param name="NewDocument">Document to add to FAME</param>
-                /// <param name="errorMessage">populates any error message received when upload fails</param>
-                /// <returns></returns>
-                public static bool AddFameDoc(IFameDocument NewDocument, out string errorMessage)
+                    validType = false;
+                    return null;
+                }
+                else
                 {
-                    bool finalStatus;
-                    int queryResult;
+                    validType = true;
+                    return "participant";
+                }
+            }                
 
-                    string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
+            //Insert document information into the FAME database
+            /// <summary>
+            /// Insert document info into the FAME database
+            /// </summary>
+            /// <param name="NewDocument">Document to add to FAME</param>
+            /// <param name="errorMessage">populates any error message received when upload fails</param>
+            /// <returns></returns>
+            public static bool AddFameDoc(IFameDocument NewDocument, out string errorMessage)
+            {
+                bool finalStatus;
+                int queryResult;
 
-                    string queryString = $@"
-                            INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
-                                ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3])
-                            VALUES
-                                ('{ NewDocument.FinalFilePath }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }')
-                            ";
+                string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
 
-                    using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                string queryString = $@"
+                        INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
+                            ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3], [filepath])
+                        VALUES
+                            ('{ NewDocument.FinalFilePath }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }', '{ NewDocument.FinalFilePath }')
+                        ";
+
+                using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                {
+                    try
                     {
-                        try
-                        {
-                            conn.Open();
-                            SqlCommand query = new SqlCommand(queryString, conn);
-                            queryResult = query.ExecuteNonQuery();
-                            conn.Close();
+                        conn.Open();
+                        SqlCommand query = new SqlCommand(queryString, conn);
+                        queryResult = query.ExecuteNonQuery();
+                        conn.Close();
 
-                            errorMessage = null;
-                            finalStatus = true;
-                        }
-                        catch (Exception e)
-                        {
-                            WriteFameLog("error", e.Message);
-
-                            errorMessage = e.Message;
-                            finalStatus = false;
-                        }
+                        errorMessage = null;
+                        finalStatus = true;
                     }
+                    catch (Exception e)
+                    {
+                        WriteFameLog("error", e.Message);
 
-                    return finalStatus;
+                        errorMessage = e.Message;
+                        finalStatus = false;
+                    }
                 }
 
-            #endregion
+                return finalStatus;
+            }
+
+        #endregion
 
         #endregion
     }
