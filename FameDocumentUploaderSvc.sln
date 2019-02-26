@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FameDocumentUploaderSvc", "FameDocumentUploaderSvc\FameDocumentUploaderSvc.csproj", "{E4F71BD4-75A3-4D23-95BA-74B90265D83E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "fameUploadConsole", "..\fameUploadConsole\fameUploadConsole\fameUploadConsole.csproj", "{BAEDC842-1060-453F-BD18-F41CC8E2CC7C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "..\fameUploadConsole\fameUploadConsole\TestConsole.csproj", "{BAEDC842-1060-453F-BD18-F41CC8E2CC7C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
