@@ -1,4 +1,4 @@
-# FameDocumentUploaderSvc
+# FAME - Windows Service - Document Uploader
 
 
 - Service runs and monitors the upload directory
