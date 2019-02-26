@@ -53,8 +53,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration.cs" />
     <Compile Include="ConfigurationHelperLibrary.cs" />
+    <Compile Include="DocumentUploaderExceptions.cs" />
     <Compile Include="Models\FameBaseDocument.cs" />
     <Compile Include="Models\FameContractorDocument.cs" />
     <Compile Include="FameLibrary.cs" />
@@ -68,10 +68,6 @@
     <Compile Include="Models\IFameContractorDocument.cs" />
     <Compile Include="Models\IFameDocument.cs" />
     <Compile Include="Models\IFameParticipantDocument.cs" />
-    <Compile Include="Models\InvalidDocumentDestinationPathException.cs" />
-    <Compile Include="Models\InvalidDocumentEntityException.cs" />
-    <Compile Include="Models\InvalidDocumentSourcePathException.cs" />
-    <Compile Include="Models\InvalidDocumentTypeException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>

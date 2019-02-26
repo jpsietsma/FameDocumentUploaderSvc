@@ -8,18 +8,18 @@ using System.Threading;
 using System.Net.Mail;
 using System.Net;
 using System.Configuration;
-using Dapper;
 using System.Data;
 using System.Collections.Generic;
 using System.Timers;
 using FameDocumentUploaderSvc.Models;
 using System.Linq;
+using static FameDocumentUploaderSvc.ConfigurationHelperLibrary;
 
 namespace FameDocumentUploaderSvc
 {
     public static class FameLibrary
     {
-        #region Development Methods
+        #region Development Methods...
 
             //Display console output during testing
             public static void ShowVerboseOutput(bool useVerbose, string filename, string changetype, string filepath)
@@ -34,7 +34,7 @@ namespace FameDocumentUploaderSvc
 
         #endregion
 
-        #region Logging Method Definitions...
+        #region Logging Methods...
 
             //logs event to the Windows Event Log as event type information
             /// <summary>
@@ -87,7 +87,7 @@ namespace FameDocumentUploaderSvc
 
                     case "error": {
 
-                            logTypePath = Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
+                            logTypePath = GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
 
                             LogWindowsEvent(message, EventLogEntryType.Error);
 
@@ -125,7 +125,7 @@ namespace FameDocumentUploaderSvc
 
                             if (errSub == "invalidFarmIDorContractor")
                             {
-                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
+                                using (StreamWriter file = new StreamWriter(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Farm ID or Contractor - " + (arg.Name).Split('_')[1] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -137,7 +137,7 @@ namespace FameDocumentUploaderSvc
                             }
                             else if (errSub == "invalidDocType")
                             {
-                                using (StreamWriter file = new StreamWriter(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
+                                using (StreamWriter file = new StreamWriter(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Document Type - " + (arg.Name).Split('_')[0] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -153,7 +153,7 @@ namespace FameDocumentUploaderSvc
                         {
                             CheckLogFiles("transfer");
 
-                            using (StreamWriter file = new StreamWriter(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log", true))
+                            using (StreamWriter file = new StreamWriter(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log", true))
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
@@ -168,7 +168,7 @@ namespace FameDocumentUploaderSvc
                         {
                             CheckLogFiles("system");
 
-                            using (StreamWriter file = new StreamWriter(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
+                            using (StreamWriter file = new StreamWriter(GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
                             {
                                 message += addmsg;
                                 file.WriteLine(message);
@@ -193,7 +193,7 @@ namespace FameDocumentUploaderSvc
                 message += msg;
 
                 CheckLogFiles("system");
-                using (StreamWriter file = new StreamWriter(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
+                using (StreamWriter file = new StreamWriter(GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log", true))
                 {   
                     file.WriteLine(message);
                     file.Close();
@@ -210,43 +210,52 @@ namespace FameDocumentUploaderSvc
             /// <param name="logType">Type of log to check, ie: error, transfer, or system</param>
             public static void CheckLogFiles(string logType)
             {
-                if (logType == "error")
+                switch (logType)
                 {
-                    if (!File.Exists(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
-                    {
-                        using (FileStream fs = File.Create(Configuration.errorLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
+                    case "error":
                         {
-                            
+                            if (!File.Exists(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
+                            {
+                                using (FileStream fs = File.Create(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log"))
+                                {
+
+                                }
+
+                                WriteFameLog(" - Daily Error Log Does not exist, the file has been created");
+                            }
+
+                            break;
                         }
 
-                        WriteFameLog(" - Daily Error Log Does not exist, the file has been created");
-                    }
-                }
-
-                if (logType == "transfer")
-                {
-                    if (!File.Exists(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
-                    {
-                        using (FileStream fs = File.Create(Configuration.transferLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
+                    case "transfer":
                         {
-                            
+                            if (!File.Exists(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
+                            {
+                                using (FileStream fs = File.Create(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log"))
+                                {
+
+                                }
+
+                                WriteFameLog(" - Daily transfer Log Does not exist, the file has been created.");
+                            }
+
+                            break;
                         }
 
-                        WriteFameLog(" - Daily transfer Log Does not exist, the file has been created.");
-                    }
-                }
-
-                if (logType == "system")
-                {
-                    if (!File.Exists(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
-                    {
-                        using (FileStream fs = File.Create(Configuration.sysLogPath + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
+                    case "system":
                         {
+                            if (!File.Exists(GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
+                            {
+                                using (FileStream fs = File.Create(GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log"))
+                                {
                             
-                        }
+                                }
 
-                        WriteFameLog(" - Daily System Log Does not exist, the file has been created.");
-                    }
+                                WriteFameLog(" - Daily System Log Does not exist, the file has been created.");
+                            }
+
+                            break;
+                        }
                 }
             }
 
@@ -264,7 +273,7 @@ namespace FameDocumentUploaderSvc
             {
                 int pk_FarmBusiness = 0;
 
-                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                 {
 
                     try
@@ -298,7 +307,7 @@ namespace FameDocumentUploaderSvc
             {
                 Int32? finalPK = null;
 
-                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                 {
                     try
                     {
@@ -328,7 +337,7 @@ namespace FameDocumentUploaderSvc
             {
                 string finalFarmID = string.Empty;
 
-                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                 {
 
                     try
@@ -357,7 +366,7 @@ namespace FameDocumentUploaderSvc
             {
                 int finalParticipantID = 0;
 
-                using (SqlConnection conn = new SqlConnection(Configuration.connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string baseQuery = $@"SELECT fullname_FL_dnd FROM dbo.participant WHERE fullname_FL_dnd LIKE '%{ contractorPrefix }%' ";
@@ -423,7 +432,7 @@ namespace FameDocumentUploaderSvc
             {
                 int finalPk = 0;
 
-                using (SqlConnection cnn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                 {
                     try
                     {
@@ -461,17 +470,17 @@ namespace FameDocumentUploaderSvc
                 bool sendSuccess = true;
 
                 //If enabled, build and sent failure email
-                if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
+                if (IsSendingEmailsAllowed())
                 {                
                     string mailRecipient = username;
 
-                    SmtpClient smtp = new SmtpClient(Configuration.smtpHost, Configuration.smtpPort)
+                    SmtpClient smtp = new SmtpClient(smtpHost, smtpPort)
                     {
                         UseDefaultCredentials = false,
-                        Credentials = new NetworkCredential(Configuration.smtpUser, Configuration.smtpPass),
-                        Host = Configuration.smtpHost,
+                        Credentials = new NetworkCredential(smtpUser, smtpPass),
+                        Host = smtpHost,
                         EnableSsl = false,
-                        Port = Configuration.smtpPort
+                        Port = smtpPort
                     };
 
                     MailMessage messageObj = new MailMessage();
@@ -479,7 +488,7 @@ namespace FameDocumentUploaderSvc
                     //code to build and send email to recipient
                     messageObj.To.Add(mailRecipient);
                     messageObj.Bcc.Add(new MailAddress("jsietsma@nycwatershed.org"));
-                    messageObj.From = new MailAddress(Configuration.smtpUserEmail);
+                    messageObj.From = new MailAddress(smtpUserEmail);
                     messageObj.IsBodyHtml = true;
                     messageObj.Subject = "Document Added: " + arg.Name;
                     messageObj.Body = CreateEmailBody(arg, uFinalPath, uDocUploadTime, mailType);
@@ -682,7 +691,10 @@ namespace FameDocumentUploaderSvc
                         //Attempt to process the upload request and move the file
                         ProcessUploadAttempt(e, NewParticipantDocument);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        //Attempt to update the database with the appropriate information
+                        AddFameDoc(NewParticipantDocument, out string error);
+
+                        //ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
                         break;
                     }
@@ -758,7 +770,19 @@ namespace FameDocumentUploaderSvc
                         //Attempt to process the upload request and move the file
                         ProcessUploadAttempt(e, NewParticipantDocument);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        //Add the document to FAME
+                        AddFameDoc(NewParticipantDocument, out string error);
+
+                        if (!string.IsNullOrEmpty(error) || showVerbose)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("-------- Verbose Debug Info ---------");
+                            Console.WriteLine(error);
+                            Console.WriteLine();
+                            ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                            Console.WriteLine("-------------------------------------");
+                            Console.WriteLine();
+                        }                        
 
                         break;
                     }
@@ -919,8 +943,7 @@ namespace FameDocumentUploaderSvc
                         ProcessUploadAttempt(e, NewLiabilityDocument);
 
                         //Add document information to FAME database
-                        AddFameDoc(NewLiabilityDocument.FinalFilePath, NewLiabilityDocument.DocumentName, NewLiabilityDocument.DocumentTypeFolderSectorCode,
-                                    NewLiabilityDocument.PK1, NewLiabilityDocument.PK2, NewLiabilityDocument.PK3, NewLiabilityDocument.WacUploadUser, out string errorMessage);
+                        AddFameDoc(NewLiabilityDocument, out string errorMessage);
 
                         ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewLiabilityDocument.FinalFilePath);
 
@@ -935,8 +958,7 @@ namespace FameDocumentUploaderSvc
                         ProcessUploadAttempt(e, NewContractorDocument);
 
                         //Add document information to FAME database
-                        AddFameDoc(NewContractorDocument.FinalFilePath, NewContractorDocument.DocumentName, NewContractorDocument.DocumentTypeFolderSectorCode,
-                            NewContractorDocument.PK1, NewContractorDocument.PK2, NewContractorDocument.PK3, NewContractorDocument.WacUploadUser, out string errorMessage);
+                        AddFameDoc(NewContractorDocument, out string errorMessage);
 
                         ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewContractorDocument.FinalFilePath);
 
@@ -967,8 +989,7 @@ namespace FameDocumentUploaderSvc
                         ProcessUploadAttempt(e, NewIRSW9Document);
 
                         //Add document information to FAME database
-                        AddFameDoc(NewIRSW9Document.FinalFilePath, NewIRSW9Document.DocumentName, NewIRSW9Document.DocumentTypeFolderSectorCode,
-                            NewIRSW9Document.PK1, NewIRSW9Document.PK2, NewIRSW9Document.PK3, NewIRSW9Document.WacUploadUser, out string errorMessage);
+                        AddFameDoc(NewIRSW9Document, out string errorMessage);
 
                         ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewIRSW9Document.FinalFilePath);
 
@@ -979,7 +1000,9 @@ namespace FameDocumentUploaderSvc
 
                     default:
                         {
+                            Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine($@"Unknown Document Type: '{ baseDoc.DocumentType }' has been detected.  Document WILL NOT be uploaded.");
+                            Console.ResetColor();
                             Console.WriteLine();
 
                             throw new InvalidDocumentTypeException(baseDoc.DocumentType);
@@ -1028,7 +1051,7 @@ namespace FameDocumentUploaderSvc
             public static void ProcessUploadAttempt(FileSystemEventArgs e, IFameDocument newDoc)
             {
                 //Attempt to upload the file to the final destination
-                if (FameLibrary.UploadFile(newDoc, out string uploadError))
+                if (UploadFile(newDoc, out string uploadError))
                 {
                     //Send email notification of successful upload
                     SendUploadedFileEmail(e, newDoc.FinalFilePath, DateTime.Now);
@@ -1052,66 +1075,24 @@ namespace FameDocumentUploaderSvc
                     Console.WriteLine($@"{ uploadError }");
                 }
 
-            }                  
-                
-            //Build sql, execute query string for inserting document records
-            /// <summary>
-            /// Build and execute SQL query for inserting document details into FAME database
-            /// </summary>
-            /// <param name="finalFilePath">Final destintion path for document</param>
-            /// <param name="docFileName">File name of document</param>
-            /// <param name="wacDocTypeSectorFolderCode">Sector folder code to merge with existing database structure</param>
-            /// <param name="pk1"></param>
-            /// <param name="pk2"></param>
-            /// <param name="pk3"></param>
-            /// <param name="wacDocUploader">User who uploaded document, defaults to FameDocUploader</param>
-            /// <param name="errorMessage"></param>
-            /// <param name="entityType"></param>
-            /// <returns>True if insert was successful, false if not</returns>
-            public static bool AddFameDoc(string finalFilePath, string docFileName, string wacDocTypeSectorFolderCode, int pk1, int? pk2, int? pk3, string wacDocUploader, out string errorMessage, string entityType = "participant")
-            {
-                bool finalStatus;
-                int queryResult;
-
-                string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
-
-                string queryString = $@"
-                    INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
-                        ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3], [filepath])
-                    VALUES
-                        ('{ finalFilePath }', '{ docFileName }', '{ wacDocTypeSectorFolderCode }', 'Jimmy Test', '{ uploadTimestamp }', '{ wacDocUploader }', '{ uploadTimestamp }', '{ pk1 }', '{ pk2 }', '{ pk3 }', '{ finalFilePath }')
-                    ";
-
-                using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
-                {
-                    try
-                    {
-                        conn.Open();                  
-                        SqlCommand query = new SqlCommand(queryString, conn);
-                        queryResult = query.ExecuteNonQuery();
-                        conn.Close();
-
-                        errorMessage = null;
-                        finalStatus = true;
-                    }
-                    catch (Exception e)
-                    {
-                        WriteFameLog("error", e.Message);
-                        LogWindowsEvent(e.Message, EventLogEntryType.Error);
-
-                        errorMessage = e.Message;
-                        finalStatus = false;
-                    }
-                }
-
-                return finalStatus;
             }
+        
 
-            
+            //Send email warning of duplicate file upload? -- add suffix to filename? --do nothing and write to error log?
+            /// <summary>
+            /// Process when a duplicate document is dropped
+            /// </summary>
+            /// <param name="doc">Duplicate document IFameDocument object</param>
+            public static void ProcessDuplicateFile(IFameDocument doc)
+            {
+
+                
+
+            }                            
             
         #endregion
                 
-        #region Extension Methods
+        #region Extension Methods...
 
             #region FameBaseDocument class extension methods
 
@@ -1198,23 +1179,23 @@ namespace FameDocumentUploaderSvc
                 string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
 
                 string queryString = $@"
-                        INSERT INTO { Configuration.cfgSQLDatabase }.dbo.{ Configuration.cfgSQLTable } 
-                            ([filename_actual], [filename_display], [fk_participantTypeSectorFolder_code], [created_by], [created], [modified_by], [modified], [PK_1], [PK_2], [PK_3], [filepath])
+                        INSERT INTO { cfgSQLDatabase }.dbo.{ cfgSQLTable } 
+                            ( [PK_1], [PK_2], [PK_3], [filename_actual], [fk_participantTypeSectorFolder_code], [created], [created_by], [modified], [modified_by], [filename_display], [filepath])
                         VALUES
-                            ('{ NewDocument.FinalFilePath }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', '{ uploadTimestamp }', '{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }', '{ NewDocument.FinalFilePath }')
+                            ('{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', NULL, NULL, '{ NewDocument.DocumentName }', '{ NewDocument.FinalFilePath }')
                         ";
 
-                using (SqlConnection conn = new SqlConnection(ConfigurationHelperLibrary.GetConnectionString()))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
                     try
                     {
                         conn.Open();
                         SqlCommand query = new SqlCommand(queryString, conn);
                         queryResult = query.ExecuteNonQuery();
-                        conn.Close();
 
                         errorMessage = null;
                         finalStatus = true;
+
                     }
                     catch (Exception e)
                     {
@@ -1231,5 +1212,6 @@ namespace FameDocumentUploaderSvc
         #endregion
 
         #endregion
+
     }
 }

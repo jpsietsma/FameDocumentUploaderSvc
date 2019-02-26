@@ -100,7 +100,7 @@ namespace FameDocumentUploaderSvc.Models
         /// <returns>string representing move destination final path</returns>
         public override void BuildUploadFilePath()
         {
-            FinalFilePath = $@"{ Configuration.wacFarmHome }{ FarmID }\{ FinalSubPath }\{ DocumentName }";
+            FinalFilePath = $@"{ ConfigurationHelperLibrary.wacFarmHome }{ FarmID }\{ FinalSubPath }\{ DocumentName }";
         }
 
     

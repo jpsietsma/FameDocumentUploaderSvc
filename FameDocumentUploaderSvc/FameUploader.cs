@@ -12,7 +12,7 @@ namespace FameDocumentUploaderSvc
 {
     public partial class FameUploader : ServiceBase
     {
-        public FileSystemWatcher fameWatcher = new FileSystemWatcher(Configuration.cfgWatchDir);
+        public FileSystemWatcher fameWatcher = new FileSystemWatcher(ConfigurationHelperLibrary.cfgWatchDir);
         private Timer WorkerTimer = null;
         private Timer MailTimer = null;
 
@@ -29,10 +29,10 @@ namespace FameDocumentUploaderSvc
         {
 
             //Create and start new thread for timer to allow program to wait for incoming files
-            WorkerTimer = new Timer(Configuration.cfgWorkerInterval);
+            WorkerTimer = new Timer(ConfigurationHelperLibrary.cfgWorkerInterval);
 
             //Timer to control mailflow, default every 30 minutes
-            Timer MailTimer = new Timer(Configuration.cfgMailTimer);
+            Timer MailTimer = new Timer(ConfigurationHelperLibrary.cfgMailTimer);
 
             //Register events to listen for: Created only
             fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnFileDropped);

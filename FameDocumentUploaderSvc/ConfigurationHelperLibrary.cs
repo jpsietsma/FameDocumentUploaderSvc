@@ -27,7 +27,7 @@ namespace FameDocumentUploaderSvc
             /// </summary>
             /// <param name="connectionName">Connection string name</param>
             /// <returns>string representing the connection string</returns>
-            public static string GetConnectionString(string connectionName = Configuration.cfgConStrName)
+            public static string GetConnectionString(string connectionName = ConfigurationHelperLibrary.cfgConStrName)
             {
                 return ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
             }
@@ -70,7 +70,7 @@ namespace FameDocumentUploaderSvc
             public static bool IsSendingEmailsAllowed()
             {
                 string stringBool = ConfigurationManager.AppSettings["EnableUploadEmails"].ToString();
-                bool allowSending = Boolean.TryParse(stringBool, out allowSending);
+                bool a = Boolean.TryParse(stringBool, out bool allowSending);
 
                 return allowSending;
             }
@@ -163,7 +163,7 @@ namespace FameDocumentUploaderSvc
             {
                 while (true)
                 {
-                    Thread.Sleep(Configuration.cfgWorkerInterval);
+                    Thread.Sleep(ConfigurationHelperLibrary.cfgWorkerInterval);
                     Console.WriteLine("Worker Thread Status: Working");
                     Console.WriteLine();
                 }
@@ -214,7 +214,7 @@ namespace FameDocumentUploaderSvc
 
                         foreach (EventLogEntry entry in log.Entries)
                         {
-                            if ((entry.Message.Contains(Configuration.wacFarmHome) || entry.Message.Contains(Configuration.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
+                            if ((entry.Message.Contains(ConfigurationHelperLibrary.wacFarmHome) || entry.Message.Contains(ConfigurationHelperLibrary.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
                             {
                                 finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
                             }
@@ -235,6 +235,56 @@ namespace FameDocumentUploaderSvc
                 return finalUser;
 
             }
+
+        #endregion
+
+        #region ########## Email Configuration Section ########## 
+
+        //Determines if an email is sent when a new file is uploaded to FAME
+        public const bool enableSendingUploadEmail = false;
+
+        public const string smtpHost = @"walton.nycwatershed.org";
+        public const string smtpUserEmail = @"<FAME Document Uploader> famedocs@nycwatershed.org";
+        public const string smtpUser = "famedocs";
+        public const string smtpPass = @"Potok4";
+        public const int smtpPort = 587;
+        public const int cfgMailTimer = 1800000;
+
+        #endregion
+
+        #region ########## SQL Configuration Section ##########
+
+        public const string cfgConStrName = "wacFameDB";
+
+        public const string cfgSQLServer = @"JamesSietsma-HP\SQLEXPRESS";
+        public const string cfgSQLDatabase = @"wacTest";
+        public const string cfgSQLUsername = @"famedocs";
+        public const string cfgSQLPassword = @"Potok4";
+        public const string cfgSQLTable = "documentArchive";
+
+        public static string connectionString = $"Server='{cfgSQLServer}';"
+                                              + $"Database='{cfgSQLDatabase}';"
+                                              + $"User Id='{cfgSQLUsername}';"
+                                              + $"Password='{cfgSQLPassword}';";
+
+        #endregion
+
+        #region ########## Program Configuration Section ##########
+
+        public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
+        public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
+        public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
+
+        public const int cfgWorkerInterval = 2000;
+
+        #endregion
+
+        #region ########## LDAP Configuration Settings ##########
+
+        public const string cfgLDAPServer = @"walton01.wac.local:389";
+        public const string cfgLDAPSam = @"WAC\famedocs";
+        public const string cfgLDAPUser = @"famedocs";
+        public const string cfgLDAPPass = @"Potok4";
 
         #endregion
 
