@@ -1,25 +1,36 @@
-﻿using fameUploadConsole;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+using System.Threading;
+using System.Data.SqlClient;
+using FameDocumentUploaderSvc;
+using System.Timers;
 
 namespace TestConsole
 {
-    class Program
+    
+    public class Program
     {
+        public static FileSystemWatcher fameWatcher = new FileSystemWatcher(ConfigurationHelperLibrary.cfgWatchDir);
+
         public static void Main(string[] args)
         {
+            //Create and start new thread for timer to allow program to wait for incoming files
+            Thread timerThread = new Thread(new ThreadStart(ConfigurationHelperLibrary.ExecuteWorkerThread));
 
-            string farmID = "DEC-028";
+            //Timer to control mailflow, default every 30 minutes
+            System.Timers.Timer MailTimer = new System.Timers.Timer(ConfigurationHelperLibrary.cfgMailTimer);
 
-            Console.WriteLine($"Farm ID: { farmID } ");
-            Console.WriteLine($"Farm Business: " + DemoLibrary.GetFarmBusinessByFarmId(farmID));
-            Console.ReadLine();
+            //Register events to listen for: Created only
+            fameWatcher.Created += new FileSystemEventHandler(FameLibrary.OnFileDropped);
 
-            Console.WriteLine();
-            Console.ReadLine();
+            //Check log messages at predefined intervals and send emails if necessary.            
+            MailTimer.Elapsed += new ElapsedEventHandler(ConfigurationHelperLibrary.MailTimer_Tick);
+
+            //This begins the actual file monitoring
+            ConfigurationHelperLibrary.ToggleMonitoring(true, fameWatcher);
+            timerThread.Start();
+
+            //MailTimer.Start();
 
         }
     }
