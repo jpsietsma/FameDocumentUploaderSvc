@@ -28,6 +28,7 @@ namespace FameDocumentUploaderSvc.Models
         public string FinalSubPath { get; set; }
         public string WacUploadUser { get; set; }
         public bool ValidEntity { get; set; }
+        public string UploadError { get; set; }
         
 
         public bool AllowRevisions
@@ -73,8 +74,6 @@ namespace FameDocumentUploaderSvc.Models
             FameParticipantDocument NewParticipantDocument = new FameParticipantDocument(e, fileSubPath, folderSector, docSector);
 
             NewParticipantDocument.AssignPK(1, FameLibrary.GetFarmBusinessByFarmId(NewParticipantDocument.FarmID));
-            NewParticipantDocument.AssignPK(2, null);
-            NewParticipantDocument.AssignPK(3, null);
             NewParticipantDocument.FarmID = NewParticipantDocument.DocumentEntity;
             NewParticipantDocument.DocumentTypeFolderSectorCode = folderSector;
             NewParticipantDocument.DocumentTypeSectorCode = docSector;
@@ -85,13 +84,13 @@ namespace FameDocumentUploaderSvc.Models
             return NewParticipantDocument;
         }
 
-        public FameContractorDocument ConvertToContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+        public FameContractorDocument ConvertToContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector, bool allowRevisions, bool annualDocument)
         {
             FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
 
             NewContractorDocument.AssignPK(1, FameLibrary.GetParticipantIDFromContractor(NewContractorDocument.ContractorName));
-            NewContractorDocument.AssignPK(2, null);
-            NewContractorDocument.AssignPK(3, null);
+            NewContractorDocument.AllowRevisions = allowRevisions;
+            NewContractorDocument.AnnualDocument = annualDocument;
 
             return NewContractorDocument;
         }

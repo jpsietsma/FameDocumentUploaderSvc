@@ -8,6 +8,7 @@ using System.Net;
 using FameDocumentUploaderSvc.Models;
 using FameDocumentUploaderSvc.UploaderExceptionClasses;
 using static FameDocumentUploaderSvc.ConfigurationHelperLibrary;
+using FameDocumentUploaderSvc.Models.ExceptionClasses;
 
 namespace FameDocumentUploaderSvc
 {
@@ -605,7 +606,6 @@ namespace FameDocumentUploaderSvc
             public static void OnFileDropped(object source, FileSystemEventArgs e)
             {
                 FameBaseDocument baseDoc = new FameBaseDocument(e);
-                bool showVerbose = true;
 
                 switch (baseDoc.DocumentType)
                 {
@@ -614,14 +614,12 @@ namespace FameDocumentUploaderSvc
                     case "ASBUILT":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+
+                        //Attempt to check FameDB for existing file
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
 
@@ -629,30 +627,26 @@ namespace FameDocumentUploaderSvc
 
                     case "AEM":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "AEM", "A_AEM", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(NewParticipantDocument.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, "AEM", "A_AEM", baseDoc.DocumentType, false, false);
+
+                        //Attempt to check FameDB for existing file
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
 
                     case "ALTR":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\COS", "A_OVERFORM", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
+
+                        //Attempt to check FameDB for existing file
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -660,7 +654,6 @@ namespace FameDocumentUploaderSvc
                     case "ASR":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType, false, true);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
 
                         int? asrPK2 = null;
                         int asrPK2_Year = DateTime.Now.Year;                      
@@ -678,15 +671,10 @@ namespace FameDocumentUploaderSvc
                         {
                             asrPK2 = GetAsrPkByYear(asrPK2_Year, NewParticipantDocument.DocumentEntity);
                             NewParticipantDocument.AssignPK(2, asrPK2);
-                        }
-                                
-                        NewParticipantDocument.AssignPK(3, null);
-
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
+                        }                                
 
                         //Attempt to update the database with the appropriate information
-                        NewParticipantDocument.AddFameDoc(out string error);
+                        NewParticipantDocument.AddFameDoc(out string error);                      
 
                         //ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
@@ -695,15 +683,13 @@ namespace FameDocumentUploaderSvc
 
                     case "COS":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2, COS\COS", "A_OVERFORM", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2, COS\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -711,14 +697,12 @@ namespace FameDocumentUploaderSvc
                     case "CRP1":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -726,77 +710,58 @@ namespace FameDocumentUploaderSvc
                     //For CREP
                     case "FSA":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts & Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType);
-                        NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                        NewParticipantDocument.AssignPK(2, null);
-                        NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts & Procurement\CREP", "A_OVERFORM", baseDoc.DocumentType, false, false);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
 
                     case "NMCP":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMP", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\Nm Credits", "A_NMP", baseDoc.DocumentType, false, true);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
 
                     case "NMP":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\NM Plans", "A_NMP", baseDoc.DocumentType);
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
-
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\Nutrient Mgmt\NM Plans", "A_NMP", baseDoc.DocumentType, true, true);
 
                         //Add the document to FAME
-                        AddFameDoc(NewParticipantDocument, out string error);
+                        NewParticipantDocument.AddFameDoc(out string error);
 
-                        if (!string.IsNullOrEmpty(error) || showVerbose)
-                        {
-                            Console.WriteLine();
-                            Console.WriteLine("-------- Verbose Debug Info ---------");
-                            Console.WriteLine(error);
-                            Console.WriteLine();
-                            ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
-                            Console.WriteLine("-------------------------------------");
-                            Console.WriteLine();
-                        }                        
+                        //Attempt to process the upload request and move the file
+                        NewParticipantDocument.ProcessUploadAttempt(e);                   
 
                         break;
                     }
 
                     case "OM":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\O&Ms", "A_FORMWAC", baseDoc.DocumentType, true, false);
 
                             string packageName = NewParticipantDocument.DocumentName;
                                 packageName = packageName.Replace(@".pdf", "");
                                 packageName = packageName.Replace(@"OM_", "");
                                                    
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
                             NewParticipantDocument.AssignPK(2, GetWfp3PackagePkByPackageName(packageName));
-                            NewParticipantDocument.AssignPK(3, null);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -804,22 +769,13 @@ namespace FameDocumentUploaderSvc
                     case "TIER1":
                     case "TIER-1":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier1", "A_TIER1", @"TIER-1");
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier1", "A_TIER1", @"TIER-1", false, false);
 
-                        if (baseDoc.DocumentEntity.Contains("PK"))
-                        {
-                            int.TryParse(baseDoc.DocumentEntity.Replace(@"PK", ""), out int pkNum);
-                            NewParticipantDocument.AssignPK(1, pkNum);
-                        }
-                        else
-                        {
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                        }
-                        
-                        NewParticipantDocument.AssignPK(2, null);
-                        NewParticipantDocument.AssignPK(3, null);
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        //Attempt to process the upload request and move the file
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -827,15 +783,13 @@ namespace FameDocumentUploaderSvc
                     case "TIER2":
                     case "TIER-2":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier2", "A_TIER1", @"TIER-2");
-                        NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                        NewParticipantDocument.AssignPK(2, null);
-                        NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"AEM\Tier2", "A_TIER1", @"TIER-2", false, false);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -843,15 +797,13 @@ namespace FameDocumentUploaderSvc
                     case "WFP0":
                     case "WFP-0":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_OVERFORM", @"WFP-0");
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_OVERFORM", @"WFP-0", true, false);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -859,15 +811,13 @@ namespace FameDocumentUploaderSvc
                     case "WFP1":
                     case "WFP-1":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_OVERFORM", @"WFP-1");
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_OVERFORM", @"WFP-1", true, false);
+
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewParticipantDocument);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -875,86 +825,81 @@ namespace FameDocumentUploaderSvc
                     case "WFP2":
                     case "WFP-2":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-2", "A_WFP2", @"WFP-2");
-                            NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
-                            NewParticipantDocument.AssignPK(2, null);
-                            NewParticipantDocument.AssignPK(3, null);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-2", "A_WFP2", @"WFP-2", true, false);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
+                        //Attempt to update the database with the appropriate information
+                        NewParticipantDocument.AddFameDoc(out string error);
+
+                        //Attempt to process the upload request and move the file
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         break;
-                    }                                                                                                                  
-                                        
-                    #endregion
+                    }                                                                                                                                                         
 
                     case "CORR":
                     {
                         IFameDocument NewCorrespondanceDocument = baseDoc;
-                        bool validEntity = false;
+                        //bool validEntity = false;
 
-                        if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
+                        if (NewCorrespondanceDocument.DetermineDocEntityType(out bool validEntity) == "participant" && validEntity)
                         {
                             NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToParticipantDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType, false, false);
                         }
                         else if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
-                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToContractorDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType);
+                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToContractorDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType, false, false);
                         }
                         else
                         {
                             throw new InvalidDocumentEntityException(e);
                         }
 
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewCorrespondanceDocument);
+                        //Attempt to upload document information into FAME database
+                        NewCorrespondanceDocument.AddFameDoc(out string error);
+
+                        //Attempt to process the upload request and move the acual file to the document structure
+                        NewCorrespondanceDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
-
-                    #region WAC Contractor Document Types...
 
                     case "GeneralLiability":
                     case "LIABILITY":
                     case "CERTLIAB":
                     {
                         IFameDocument NewLiabilityDocument = baseDoc;
-                        bool validEntity = false;
 
-                        if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
+                        if (NewLiabilityDocument.DetermineDocEntityType(out bool validEntity) == "participant" && validEntity)
                         {
                             NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
-                            NewLiabilityDocument = NewLiabilityDocument.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
+                            NewLiabilityDocument = NewLiabilityDocument.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else
                         {
                             throw new InvalidDocumentEntityException(e);
                         }
 
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewLiabilityDocument);
-
                         //Add document information to FAME database
-                        AddFameDoc(NewLiabilityDocument, out string errorMessage);
+                        NewLiabilityDocument.AddFameDoc(out string errorMessage);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewLiabilityDocument.FinalFilePath);
+                        //Attempt to process the upload request and move the file
+                        NewLiabilityDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
 
                     case "WORKCOMP":
                     {
-                        FameContractorDocument NewContractorDocument = baseDoc.ConvertToContractorDocument(e, "Workers Comp", "PART_OVER", baseDoc.DocumentType);
-
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewContractorDocument);
+                        FameContractorDocument NewContractorDocument = baseDoc.ConvertToContractorDocument(e, "Workers Comp", "PART_OVER", baseDoc.DocumentType, false, true);
 
                         //Add document information to FAME database
-                        AddFameDoc(NewContractorDocument, out string errorMessage);
+                        NewContractorDocument.AddFameDoc(out string errorMessage);
 
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewContractorDocument.FinalFilePath);
+                        //Attempt to process the upload request and move the file
+                        NewContractorDocument.ProcessUploadAttempt(e);
 
                         break;
                     }
@@ -963,36 +908,33 @@ namespace FameDocumentUploaderSvc
                     case "IRSW9":
                     {
                         IFameDocument NewIRSW9Document = baseDoc;
-                        bool validEntity = false;
 
-                        if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
+                        if (NewIRSW9Document.DetermineDocEntityType(out bool validEntity) == "participant" && validEntity)
                         {
                             NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
 
                         if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
-                            NewIRSW9Document = NewIRSW9Document.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
+                            NewIRSW9Document = NewIRSW9Document.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else
                         {                                
                             throw new InvalidDocumentEntityException(e);                                
                         }
 
-                        //Attempt to process the upload request and move the file
-                        ProcessUploadAttempt(e, NewIRSW9Document);
+                        //Check FAME database for existing document
+                        NewIRSW9Document.AddFameDoc(out string error);
 
-                        //Add document information to FAME database
-                        AddFameDoc(NewIRSW9Document, out string errorMessage);
-
-                        ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewIRSW9Document.FinalFilePath);
+                        //no error message returned, then we proceed to move file to J:\Farms\{FarmID}
+                        NewIRSW9Document.ProcessUploadAttempt(e);                       
 
                         break;
                     }
 
-                    #endregion
-
-                    //User has dropped document with an unrecognized type
+                #endregion
+                                        
+                    //User has dropped document with an unrecognized type - throw exception
                     default:
                         {                            
                             try
@@ -1002,7 +944,7 @@ namespace FameDocumentUploaderSvc
                             catch (InvalidDocumentTypeException ex)
                             {
                                 //document the errors in the uploader logs and windows event log
-                                ex.LogUploaderException();
+                                ex.LogUploaderException(ex.Message);
                             }
 
                             break;                            
@@ -1048,7 +990,7 @@ namespace FameDocumentUploaderSvc
             /// </summary>
             /// <param name="e"></param>
             /// <param name="finalFilePath"></param>
-            public static void ProcessUploadAttempt(FileSystemEventArgs e, IFameDocument newDoc)
+            public static void ProcessUploadAttempt(this IFameDocument newDoc, FileSystemEventArgs e)
             {
                 //Attempt to upload the file to the final destination
                 if (UploadFile(newDoc, out string uploadError))
@@ -1075,8 +1017,7 @@ namespace FameDocumentUploaderSvc
                     Console.WriteLine($@"{ uploadError }");
                 }
 
-            }
-        
+            }        
 
             //Process when file dropped matches file already in database
             /// <summary>
@@ -1103,13 +1044,6 @@ namespace FameDocumentUploaderSvc
 
             }                            
             
-        #endregion
-                
-        #region Extension Methods...
-
-            
-
-        #endregion
-
+        #endregion              
     }
 }

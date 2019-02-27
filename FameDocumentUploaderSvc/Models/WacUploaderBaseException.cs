@@ -20,14 +20,14 @@ namespace FameDocumentUploaderSvc.Models
             public int? ErrorSeverity { get; set; }
             public string UploaderLogMessage { get; private set; }
 
-            public WacUploaderBaseException(string message, int? errorLevel = 0) : base(message)
+            public WacUploaderBaseException(string message, int? errorLevel = 1) : base(message)
             {
                 UploaderLogMessage = message;
                 ErrorSeverity = errorLevel;
             }
 
             //
-            public void LogUploaderException()
+            public void LogUploaderException(string message)
             {
                 WriteFameLog("error", message);
                 LogWindowsEvent(message, EventLogEntryType.Error);
