@@ -11,7 +11,6 @@ using System.Timers;
 
 namespace FameDocumentUploaderSvc
 {
-
     //Class that helps grab configuration settings from app.config and sets program configurations
     /// <summary>
     /// Class which helps grab values from the app.config file and other configuration areas for the service
@@ -19,15 +18,15 @@ namespace FameDocumentUploaderSvc
     public static class ConfigurationHelperLibrary
     {
 
-        #region App.Config - Data Retrieval
+        #region ### App.Config - Data Retrieval ###
 
-            //Get connection string by name from app.config 
-            /// <summary>
-            /// Retrieve connection string from app.config
-            /// </summary>
-            /// <param name="connectionName">Connection string name</param>
-            /// <returns>string representing the connection string</returns>
-            public static string GetConnectionString(string connectionName = ConfigurationHelperLibrary.cfgConStrName)
+        //Get connection string by name from app.config 
+        /// <summary>
+        /// Retrieve connection string from app.config
+        /// </summary>
+        /// <param name="connectionName">Connection string name</param>
+        /// <returns>string representing the connection string</returns>
+        public static string GetConnectionString(string connectionName = ConfigurationHelperLibrary.cfgConStrName)
             {
                 return ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
             }
@@ -114,7 +113,7 @@ namespace FameDocumentUploaderSvc
             {
                 return ConfigurationManager.AppSettings["UploaderEmailUser"].ToString();
             }
-            
+
             //Get email password for uploader from app.config
             /// <summary>
             /// Return email password for document uploader's address
@@ -131,23 +130,23 @@ namespace FameDocumentUploaderSvc
             /// </summary>
             /// <returns>int representing the port number to use</returns>
             public static int GetUploaderEmailPort()
-            {
-                bool convertInt = int.TryParse(ConfigurationManager.AppSettings["UploaderEmailPort"].ToString(), out int finalInt);
-                
-                return finalInt;
-            }
+        {
+            bool convertInt = int.TryParse(ConfigurationManager.AppSettings["UploaderEmailPort"].ToString(), out int finalInt);
+
+            return finalInt;
+        }
 
         #endregion
 
-        #region Internal Program Configuration Methods...
+        #region ### Internal Program Configuration Methods ###
 
-            //Runs when the mailtimer ticks.  Used for summary emails if sending emails are enabled
-            /// <summary>
-            /// If sending status emails are enabled, fires this method on decided interval
-            /// </summary>
-            /// <param name="source">Source object</param>
-            /// <param name="e">ElapsedEventArgs object</param>
-            public static void MailTimer_Tick(object source, ElapsedEventArgs e)
+        //Runs when the mailtimer ticks.  Used for summary emails if sending emails are enabled
+        /// <summary>
+        /// If sending status emails are enabled, fires this method on decided interval
+        /// </summary>
+        /// <param name="source">Source object</param>
+        /// <param name="e">ElapsedEventArgs object</param>
+        public static void MailTimer_Tick(object source, ElapsedEventArgs e)
             {
                 if (ConfigurationHelperLibrary.IsSendingEmailsAllowed())
                 {
@@ -201,90 +200,90 @@ namespace FameDocumentUploaderSvc
             /// <param name="e">FileSystemEventArgs object which represents drop</param>
             /// <returns>Windows login of user who dropped file</returns>
             public static string GetUploadUserFromEventLog(string fileName, FileSystemEventArgs e)
+        {
+
+            string finalUser = string.Empty;
+
+            try
             {
-
-                string finalUser = string.Empty;
-
-                try
+                //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
+                if (EventLog.SourceExists("Security"))
                 {
-                    //Try to Compare security logs to file drop name and time and pull file uploader from Windows Security event logs.  This requires administrator priviliges for the service or it can not read event log.
-                    if (EventLog.SourceExists("Security"))
-                    {
-                        EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
+                    EventLog log = new EventLog() { Source = "Microsoft Windows security auditing.", Log = "Security" };
 
-                        foreach (EventLogEntry entry in log.Entries)
+                    foreach (EventLogEntry entry in log.Entries)
+                    {
+                        if ((entry.Message.Contains(ConfigurationHelperLibrary.wacFarmHome) || entry.Message.Contains(ConfigurationHelperLibrary.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
                         {
-                            if ((entry.Message.Contains(ConfigurationHelperLibrary.wacFarmHome) || entry.Message.Contains(ConfigurationHelperLibrary.wacContractorHome)) && (entry.Message.Contains("0x80")) && (!entry.Message.Contains("desktop.ini")))
-                            {
-                                finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
-                            }
+                            finalUser = FameLibrary.GetUploadUserName(entry.Message, e.Name);
                         }
                     }
-                    else
-                    {
-                        FameLibrary.WriteFameLog("Specified event source: 'security' does not exist");
-                        FameLibrary.LogWindowsEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
-                    }
-
                 }
-                catch (Exception ex)
+                else
                 {
-                    throw new Exception(ex.Message);
+                    FameLibrary.WriteFameLog("Specified event source: 'security' does not exist");
+                    FameLibrary.LogWindowsEvent("Specified event source: 'security' does not exist.", EventLogEntryType.Error);
                 }
-
-                return finalUser;
 
             }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+            return finalUser;
+
+        }
 
         #endregion
 
-        #region ########## Email Configuration Section ########## 
+        #region ### Email Configuration Section ###
 
-        //Determines if an email is sent when a new file is uploaded to FAME
-        public const bool enableSendingUploadEmail = false;
+            //Determines if an email is sent when a new file is uploaded to FAME
+            public const bool enableSendingUploadEmail = false;
 
-        public const string smtpHost = @"walton.nycwatershed.org";
-        public const string smtpUserEmail = @"<FAME Document Uploader> famedocs@nycwatershed.org";
-        public const string smtpUser = "famedocs";
-        public const string smtpPass = @"Potok4";
-        public const int smtpPort = 587;
-        public const int cfgMailTimer = 1800000;
-
-        #endregion
-
-        #region ########## SQL Configuration Section ##########
-
-        public const string cfgConStrName = "wacFameDB";
-
-        public const string cfgSQLServer = @"JamesSietsma-HP\SQLEXPRESS";
-        public const string cfgSQLDatabase = @"wacTest";
-        public const string cfgSQLUsername = @"famedocs";
-        public const string cfgSQLPassword = @"Potok4";
-        public const string cfgSQLTable = "documentArchive";
-
-        public static string connectionString = $"Server='{cfgSQLServer}';"
-                                              + $"Database='{cfgSQLDatabase}';"
-                                              + $"User Id='{cfgSQLUsername}';"
-                                              + $"Password='{cfgSQLPassword}';";
+            public const string smtpHost = @"walton.nycwatershed.org";
+            public const string smtpUserEmail = @"<FAME Document Uploader> famedocs@nycwatershed.org";
+            public const string smtpUser = "famedocs";
+            public const string smtpPass = @"Potok4";
+            public const int smtpPort = 587;
+            public const int cfgMailTimer = 1800000;
 
         #endregion
 
-        #region ########## Program Configuration Section ##########
+        #region ### SQL Configuration Section ###
 
-        public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
-        public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
-        public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
+            public const string cfgConStrName = "wacFameDB";
 
-        public const int cfgWorkerInterval = 2000;
+            public const string cfgSQLServer = @"JamesSietsma-HP\SQLEXPRESS";
+            public const string cfgSQLDatabase = @"wacTest";
+            public const string cfgSQLUsername = @"famedocs";
+            public const string cfgSQLPassword = @"Potok4";
+            public const string cfgSQLTable = "documentArchive";
+
+            public static string connectionString = $"Server='{cfgSQLServer}';"
+                                                    + $"Database='{cfgSQLDatabase}';"
+                                                    + $"User Id='{cfgSQLUsername}';"
+                                                    + $"Password='{cfgSQLPassword}';";
 
         #endregion
 
-        #region ########## LDAP Configuration Settings ##########
+        #region ### Program Configuration Section ###
 
-        public const string cfgLDAPServer = @"walton01.wac.local:389";
-        public const string cfgLDAPSam = @"WAC\famedocs";
-        public const string cfgLDAPUser = @"famedocs";
-        public const string cfgLDAPPass = @"Potok4";
+            public const string wacFarmHome = @"E:\Projects\fame uploads\Farms\";
+            public const string wacContractorHome = @"E:\Projects\fame uploads\Contractors\";
+            public const string cfgWatchDir = @"E:\Projects\fame uploads\upload_drop";
+
+            public const int cfgWorkerInterval = 2000;
+
+        #endregion
+
+        #region ### LDAP Configuration Settings ###
+
+            public const string cfgLDAPServer = @"walton01.wac.local:389";
+            public const string cfgLDAPSam = @"WAC\famedocs";
+            public const string cfgLDAPUser = @"famedocs";
+            public const string cfgLDAPPass = @"Potok4";
 
         #endregion
 

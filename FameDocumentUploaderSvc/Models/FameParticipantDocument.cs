@@ -73,7 +73,6 @@ namespace FameDocumentUploaderSvc.Models
 
                 case 2:
                     {
-                        this.PK2 = null;
                         this.PK2 = pkValue;
                         finalStatus = true;
                         break;
@@ -81,7 +80,7 @@ namespace FameDocumentUploaderSvc.Models
 
                 case 3:
                     {
-                        this.PK3 = null;   
+                        this.PK3 = pkValue;
                         break;
                     }
 

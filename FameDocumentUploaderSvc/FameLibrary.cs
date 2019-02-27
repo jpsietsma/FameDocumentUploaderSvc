@@ -2,17 +2,11 @@
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Net.Mail;
 using System.Net;
-using System.Configuration;
-using System.Data;
-using System.Collections.Generic;
-using System.Timers;
 using FameDocumentUploaderSvc.Models;
-using System.Linq;
+using FameDocumentUploaderSvc.UploaderExceptionClasses;
 using static FameDocumentUploaderSvc.ConfigurationHelperLibrary;
 
 namespace FameDocumentUploaderSvc
@@ -665,7 +659,7 @@ namespace FameDocumentUploaderSvc
 
                     case "ASR":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType, false, true);
                             NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(baseDoc.DocumentEntity));
 
                         int? asrPK2 = null;
@@ -692,7 +686,7 @@ namespace FameDocumentUploaderSvc
                         ProcessUploadAttempt(e, NewParticipantDocument);
 
                         //Attempt to update the database with the appropriate information
-                        AddFameDoc(NewParticipantDocument, out string error);
+                        NewParticipantDocument.AddFameDoc(out string error);
 
                         //ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
@@ -900,7 +894,7 @@ namespace FameDocumentUploaderSvc
 
                         if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
                         {
-                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToParticipantDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType);
+                            NewCorrespondanceDocument = NewCorrespondanceDocument.ConvertToParticipantDocument(e, @"Correspondance", "A_OVERFORM", baseDoc.DocumentType, false, false);
                         }
                         else if (NewCorrespondanceDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
@@ -928,7 +922,7 @@ namespace FameDocumentUploaderSvc
 
                         if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
                         {
-                            NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
+                            NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
@@ -973,7 +967,7 @@ namespace FameDocumentUploaderSvc
 
                         if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "participant" && validEntity)
                         {
-                            NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType);
+                            NewIRSW9Document = NewIRSW9Document.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
 
                         if (NewIRSW9Document.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
@@ -998,14 +992,20 @@ namespace FameDocumentUploaderSvc
 
                     #endregion
 
+                    //User has dropped document with an unrecognized type
                     default:
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($@"Unknown Document Type: '{ baseDoc.DocumentType }' has been detected.  Document WILL NOT be uploaded.");
-                            Console.ResetColor();
-                            Console.WriteLine();
+                        {                            
+                            try
+                            {                                
+                                throw new InvalidDocumentTypeException(baseDoc.DocumentType);
+                            }
+                            catch (InvalidDocumentTypeException ex)
+                            {
+                                //document the errors in the uploader logs and windows event log
+                                ex.LogUploaderException();
+                            }
 
-                            throw new InvalidDocumentTypeException(baseDoc.DocumentType);
+                            break;                            
                         }
 
                 }
@@ -1078,15 +1078,28 @@ namespace FameDocumentUploaderSvc
             }
         
 
-            //Send email warning of duplicate file upload? -- add suffix to filename? --do nothing and write to error log?
+            //Process when file dropped matches file already in database
             /// <summary>
             /// Process when a duplicate document is dropped
             /// </summary>
             /// <param name="doc">Duplicate document IFameDocument object</param>
-            public static void ProcessDuplicateFile(IFameDocument doc)
+            public static void ProcessDuplicateFile(IFameDocument doc, bool allow = false)
             {
 
-                
+                if (!allow)
+                {
+                    //Add logic for duplicate processing including both allowed and disallowed
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Uploader found this file exists in the database already.  Filetype does not allow duplicates.  Please check the name and try again.");
+                    Console.ResetColor();
+                    Console.WriteLine();
+                }
+                else
+                {
+
+                    
+
+                }                
 
             }                            
             
@@ -1094,122 +1107,7 @@ namespace FameDocumentUploaderSvc
                 
         #region Extension Methods...
 
-            #region FameBaseDocument class extension methods
-
-                //Convert  FameBaseDocument to FameContractorDocument
-                /// <summary>
-                /// Convert the uploaded base document to a Contractor document
-                /// </summary>
-                /// <param name="baseDoc">Base document to convert</param>
-                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
-                /// <returns>FameContractorDocument object pre-populated</returns>
-                public static FameContractorDocument ConvertToContractorDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
-                {
-                    FameContractorDocument NewContractorDocument = new FameContractorDocument(e, fileSubPath, folderSector, docSector);
-
-                    NewContractorDocument.AssignPK(1, GetParticipantIDFromContractor(NewContractorDocument.ContractorName));
-                    NewContractorDocument.AssignPK(2, null);
-                    NewContractorDocument.AssignPK(3, null);
-
-                    return NewContractorDocument;
-                }
-
-                //Convert FameBaseDocument to FameParticipantDocument
-                /// <summary>
-                /// Convert the uploaded base document to a Participant document
-                /// </summary>
-                /// <param name="baseDoc">FameBaseDocument to convert</param>
-                /// <param name="e">FileSystemEventArgs object responsible for the drop</param>
-                /// <returns>FameParticipantDocument pre-filled with relevent information</returns>
-                public static FameParticipantDocument ConvertToParticipantDocument(this FameBaseDocument baseDoc, FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
-                {
-                    FameParticipantDocument NewParticipantDocument = new FameParticipantDocument(e, fileSubPath, folderSector, docSector);
-                    
-                    NewParticipantDocument.AssignPK(1, GetFarmBusinessByFarmId(NewParticipantDocument.FarmID));
-                    NewParticipantDocument.AssignPK(2, null);
-                    NewParticipantDocument.AssignPK(3, null);
-
-                    return NewParticipantDocument;
-                }
-
-            #endregion
-
-            #region IFameDocument class extension methods
-
-            //Determines if document is participant or contractor document
-            /// <summary>
-            /// Determine if document is a participant or contractor document based on DocumentEntity
-            /// </summary>
-            /// <param name="doc">Document to check type on</param>
-            /// <param name="validType">true if validEntityType else false</param>
-            /// <returns>string either 'participant' or 'contractor'</returns>
-            public static string DetermineDocEntityType(this IFameDocument doc, out bool validType)
-            {
-
-                if (GetFarmBusinessByFarmId(doc.DocumentEntity) == 0)
-                {
-                    if (GetParticipantIDFromContractor(doc.DocumentEntity) > 0)
-                    {
-                        validType = true;
-                        return "contractor";
-                    }
-
-                    validType = false;
-                    return null;
-                }
-                else
-                {
-                    validType = true;
-                    return "participant";
-                }
-            }                
-
-            //Insert document information into the FAME database
-            /// <summary>
-            /// Insert document info into the FAME database
-            /// </summary>
-            /// <param name="NewDocument">Document to add to FAME</param>
-            /// <param name="errorMessage">populates any error message received when upload fails</param>
-            /// <returns></returns>
-            public static bool AddFameDoc(IFameDocument NewDocument, out string errorMessage)
-            {
-                bool finalStatus;
-                int queryResult;
-
-                string uploadTimestamp = DateTime.Now.ToString("yyyy-MM-dd hh:MM:ss.fff");
-
-                string queryString = $@"
-                        INSERT INTO { cfgSQLDatabase }.dbo.{ cfgSQLTable } 
-                            ( [PK_1], [PK_2], [PK_3], [filename_actual], [fk_participantTypeSectorFolder_code], [created], [created_by], [modified], [modified_by], [filename_display], [filepath])
-                        VALUES
-                            ('{ NewDocument.PK1 }', '{ NewDocument.PK2 }', '{ NewDocument.PK3 }', '{ NewDocument.DocumentName }', '{ NewDocument.DocumentTypeFolderSectorCode }', '{ uploadTimestamp }', '{ NewDocument.WacUploadUser }', NULL, NULL, '{ NewDocument.DocumentName }', '{ NewDocument.FinalFilePath }')
-                        ";
-
-                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
-                {
-                    try
-                    {
-                        conn.Open();
-                        SqlCommand query = new SqlCommand(queryString, conn);
-                        queryResult = query.ExecuteNonQuery();
-
-                        errorMessage = null;
-                        finalStatus = true;
-
-                    }
-                    catch (Exception e)
-                    {
-                        WriteFameLog("error", e.Message);
-
-                        errorMessage = e.Message;
-                        finalStatus = false;
-                    }
-                }
-
-                return finalStatus;
-            }
-
-        #endregion
+            
 
         #endregion
 

@@ -12,19 +12,35 @@ namespace FameDocumentUploaderSvc.Models
     /// </summary>
     public class FameBaseDocument : IFameDocument
     {
+        private bool _AllowRevisions;
+        private bool _AnnualDocument;
+
         public string DocumentName { get; set; }
         public string DocumentPath { get; set; }
         public string DocumentType { get; set; }
         public string DocumentEntity { get; set; }
         public int PK1 { get; set; }
-        public int? PK2 { get; set; }
-        public int? PK3 { get; set; }
+        public int? PK2 { get; set; } = null;
+        public int? PK3 { get; set; } = null;
         public string DocumentTypeSectorCode { get; set; }
         public string DocumentTypeFolderSectorCode { get; set; }
         public string FinalFilePath { get; set; }
         public string FinalSubPath { get; set; }
         public string WacUploadUser { get; set; }
         public bool ValidEntity { get; set; }
+        
+
+        public bool AllowRevisions
+        {
+            get { return _AllowRevisions; }
+            set { _AllowRevisions = value; }
+        }        
+
+        public bool AnnualDocument
+        {
+            get { return _AnnualDocument; }
+            set { _AnnualDocument = value; }
+        }
 
         public FameBaseDocument(FileSystemEventArgs e)
         {
@@ -52,7 +68,7 @@ namespace FameDocumentUploaderSvc.Models
 
         }
         
-        public FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector)
+        public FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector, bool allowRevisions, bool annualDocument)
         {
             FameParticipantDocument NewParticipantDocument = new FameParticipantDocument(e, fileSubPath, folderSector, docSector);
 
@@ -63,6 +79,8 @@ namespace FameDocumentUploaderSvc.Models
             NewParticipantDocument.DocumentTypeFolderSectorCode = folderSector;
             NewParticipantDocument.DocumentTypeSectorCode = docSector;
             NewParticipantDocument.FinalSubPath = fileSubPath;
+            NewParticipantDocument.AllowRevisions = allowRevisions;
+            NewParticipantDocument.AnnualDocument = annualDocument;
 
             return NewParticipantDocument;
         }

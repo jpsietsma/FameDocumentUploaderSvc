@@ -17,12 +17,14 @@ namespace FameDocumentUploaderSvc.Models
         int? PK2 { get; set; }
         int? PK3 { get; set; }
         string WacUploadUser { get; set; }
+        bool AllowRevisions { get; set; }
+        bool AnnualDocument { get; set; }
 
         bool AssignPK(int pkNum, int? pkValue);
         void BuildUploadFilePath();
 
         FameContractorDocument ConvertToContractorDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector);
 
-        FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector);
+        FameParticipantDocument ConvertToParticipantDocument(FileSystemEventArgs e, string fileSubPath, string folderSector, string docSector, bool allowRevisions, bool annualDocument);
     }
 }

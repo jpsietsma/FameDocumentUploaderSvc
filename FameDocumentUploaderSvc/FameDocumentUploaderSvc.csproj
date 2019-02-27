@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="ConfigurationHelperLibrary.cs" />
     <Compile Include="DocumentUploaderExceptions.cs" />
+    <Compile Include="ExtensionLib.cs" />
     <Compile Include="Models\FameBaseDocument.cs" />
     <Compile Include="Models\FameContractorDocument.cs" />
     <Compile Include="FameLibrary.cs" />
@@ -68,6 +69,7 @@
     <Compile Include="Models\IFameContractorDocument.cs" />
     <Compile Include="Models\IFameDocument.cs" />
     <Compile Include="Models\IFameParticipantDocument.cs" />
+    <Compile Include="Models\WacUploaderBaseException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
