@@ -8,7 +8,9 @@ using System.Net;
 using FameDocumentUploaderSvc.Models;
 using FameDocumentUploaderSvc.UploaderExceptionClasses;
 using static FameDocumentUploaderSvc.ConfigurationHelperLibrary;
-using FameDocumentUploaderSvc.Models.ExceptionClasses;
+using System.Threading.Tasks;
+using System.IO.Compression;
+using System.Collections.Generic;
 
 namespace FameDocumentUploaderSvc
 {
@@ -82,13 +84,84 @@ namespace FameDocumentUploaderSvc
 
                     case "error": {
 
-                            logTypePath = GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
+                            logTypePath = GetErrorLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
 
                             LogWindowsEvent(message, EventLogEntryType.Error);
 
                             break;
                     }
+
+                    case "transfer":
+                    {
+
+                        logTypePath = GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
+
+                        LogWindowsEvent(message, EventLogEntryType.Error);
+
+                        break;
+                    }
+
+                    case "system":
+                    {
+
+                        logTypePath = GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
+
+                        LogWindowsEvent(message, EventLogEntryType.Error);
+
+                        break;
+                    }
+            }
+
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(logTypePath, true))
+                {
+                    file.WriteLine(message);
                 }
+
+            }
+
+            //Writes to specified FAME log, supplied message
+            /// <summary>
+            /// Write to a specific FAME document uploader log with a specific message
+            /// </summary>
+            /// <param name="logType">Type of log to write</param>
+            /// <param name="msg">Message to write to newly added log</param>
+            public static void WriteFameLog(UploaderLogTypes log, string msg)
+            {
+                string message = DateTime.Now.ToString(@"HH:mm:sstt - ");
+                string logTypePath = null;
+
+                message += msg;
+                            
+                switch (log)
+                {
+
+                    case UploaderLogTypes.ERROR:
+                        {
+
+                            logTypePath = GetErrorLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log";
+                            LogWindowsEvent(message, EventLogEntryType.Error);
+
+                            break;
+                        }
+
+                    case UploaderLogTypes.SYSTEM:
+                        {
+
+                            logTypePath = GetSystemLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_system.log";
+                            LogWindowsEvent(message, EventLogEntryType.Information);
+
+                            break;
+                        }
+
+                    case UploaderLogTypes.TRANSFER:
+                        {
+
+                            logTypePath = GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_transfer.log";
+                            LogWindowsEvent(message, EventLogEntryType.Information);
+
+                            break;
+                        }
+            }
 
                 using (System.IO.StreamWriter file = new System.IO.StreamWriter(logTypePath, true))
                 {
@@ -120,7 +193,7 @@ namespace FameDocumentUploaderSvc
 
                             if (errSub == "invalidFarmIDorContractor")
                             {
-                                using (StreamWriter file = new StreamWriter(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
+                                using (StreamWriter file = new StreamWriter(GetErrorLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Farm ID or Contractor - " + (arg.Name).Split('_')[1] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -132,7 +205,7 @@ namespace FameDocumentUploaderSvc
                             }
                             else if (errSub == "invalidDocType")
                             {
-                                using (StreamWriter file = new StreamWriter(GetTransferLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
+                                using (StreamWriter file = new StreamWriter(GetErrorLogPath() + DateTime.Now.ToString("MM-dd-yyyy") + "_error.log", true))
                                 {
                                     message += "Invalid Document Type - " + (arg.Name).Split('_')[0] + " - upload cancelled.";
                                     file.WriteLine(message);
@@ -277,18 +350,15 @@ namespace FameDocumentUploaderSvc
                         SqlCommand sql = new SqlCommand($@"SELECT pk_farmBusiness FROM dbo.farmBusiness WHERE farmID = '{ farmID }'", cnn);
                         Int32 pkFarmBusiness = (Int32)sql.ExecuteScalar();
                         pk_FarmBusiness = pkFarmBusiness;
-
-
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e.Message);
+                        throw new InvalidDocumentEntityException(e, farmID);
                     }
 
                 }
 
                 return pk_FarmBusiness;
-
             }
 
             //Get the pk_asrAg for document by ASR year
@@ -313,7 +383,7 @@ namespace FameDocumentUploaderSvc
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e.Message);
+                        throw new InvalidASRYearException(e, asrYear);
                     }
                 }
 
@@ -343,7 +413,7 @@ namespace FameDocumentUploaderSvc
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine("Oh, an error occurred!: " + e.Message);
+                        throw new InvalidDocumentEntityException(e, uFarmBusiness.ToString());
                     }
 
                 }
@@ -363,39 +433,46 @@ namespace FameDocumentUploaderSvc
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    conn.Open();
-                    string baseQuery = $@"SELECT fullname_FL_dnd FROM dbo.participant WHERE fullname_FL_dnd LIKE '%{ contractorPrefix }%' ";
-
-                    //Create our sql command object and set the command text and connection context
-                    SqlCommand sqlQuery = new SqlCommand(baseQuery, conn);
-
-                    //Execute our query and count the results, numRows will be 0 for invalid contractor
-                    int.TryParse(sqlQuery.ExecuteNonQuery().ToString(), out int numRows);
-
-                    //Show us an error if the contractor name is not recognized and do not upload the file
-                    //Otherwise get the participant ID from the database
-                    if (numRows == 0)
+                    try
                     {
-                        Console.WriteLine();
-                        Console.WriteLine("Unrecognized contractor name.  Please check the file name and try again.");
-                        Console.WriteLine();
+                        conn.Open();
+                        string baseQuery = $@"SELECT fullname_FL_dnd FROM dbo.participant WHERE fullname_FL_dnd LIKE '%{ contractorPrefix }%' ";
 
-                        return numRows;
+                        //Create our sql command object and set the command text and connection context
+                        SqlCommand sqlQuery = new SqlCommand(baseQuery, conn);
+
+                        //Execute our query and count the results, numRows will be 0 for invalid contractor
+                        int.TryParse(sqlQuery.ExecuteNonQuery().ToString(), out int numRows);
+
+                        //Show us an error if the contractor name is not recognized and do not upload the file
+                        //Otherwise get the participant ID from the database
+                        if (numRows == 0)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Unrecognized contractor name.  Please check the file name and try again.");
+                            Console.WriteLine();
+
+                            return numRows;
+                        }
+                        else
+                        {
+
+                            baseQuery = $@"SELECT pk_participant FROM dbo.participant WHERE fullname_FL_dnd = '{ contractorPrefix }'";
+                            sqlQuery = new SqlCommand(baseQuery, conn);
+
+                            //get our participant id result from the query and parse it as an INT and set equal with finalParticipantID
+                            var participantID = sqlQuery.ExecuteScalar();
+                            int.TryParse(participantID.ToString(), out finalParticipantID);
+
+                            Console.WriteLine();
+                            Console.WriteLine($"Participant ID: { finalParticipantID }");
+                            Console.WriteLine();
+
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
-
-                        baseQuery = $@"SELECT pk_participant FROM dbo.participant WHERE fullname_FL_dnd = '{ contractorPrefix }'";
-                        sqlQuery = new SqlCommand(baseQuery, conn);
-
-                        //get our participant id result from the query and parse it as an INT and set equal with finalParticipantID
-                        var participantID = sqlQuery.ExecuteScalar();
-                        int.TryParse(participantID.ToString(), out finalParticipantID);
-
-                        Console.WriteLine();
-                        Console.WriteLine($"Participant ID: { finalParticipantID }");
-                        Console.WriteLine();
-
+                        throw new InvalidDocumentEntityException(e, contractorPrefix);
                     }
                 }
 
@@ -595,7 +672,7 @@ namespace FameDocumentUploaderSvc
 
         #endregion
 
-        #region Upload Methods and actions...
+        #region Upload and Archiving Methods...
 
             //Main method for handling file drops
             /// <summary>
@@ -674,7 +751,10 @@ namespace FameDocumentUploaderSvc
                         }                                
 
                         //Attempt to update the database with the appropriate information
-                        NewParticipantDocument.AddFameDoc(out string error);                      
+                        NewParticipantDocument.AddFameDoc(out string error);
+
+                        //Attempt to process the upload request and move the file
+                        NewParticipantDocument.ProcessUploadAttempt(e);
 
                         //ShowVerboseOutput(showVerbose, e.Name, e.ChangeType.ToString(), NewParticipantDocument.FinalFilePath);
 
@@ -839,7 +919,6 @@ namespace FameDocumentUploaderSvc
                     case "CORR":
                     {
                         IFameDocument NewCorrespondanceDocument = baseDoc;
-                        //bool validEntity = false;
 
                         if (NewCorrespondanceDocument.DetermineDocEntityType(out bool validEntity) == "participant" && validEntity)
                         {
@@ -1042,7 +1121,50 @@ namespace FameDocumentUploaderSvc
 
                 }                
 
-            }                            
+            }
+
+            //Archive all logs, i.e. error, system, and transfer by zipping and placing in logs/archived-logs/<Year>_<monthName>.zip
+            /// <summary>
+            /// Archive the system, error, and transfer log files by zipping them up and moving them to "logs/archived-logs/<YEAR>_<MONTH>.zip"
+            /// </summary>
+            /// <param name="zipDest">destination to place the zip file when completed</param>
+            /// <returns>true if successful or false if failed</returns>
+            public static bool ArchiveLogFiles()
+            {
+                //Build our arrays of log files, one array for each log type
+                string[] errorLogs = Directory.GetFiles(GetErrorLogPath());
+                string[] transferLogs = Directory.GetFiles(GetTransferLogPath());
+                string[] systemLogs = Directory.GetFiles(GetSystemLogPath());
+
+                //Build our master string array of log files, created with the length as the sum of files
+                string[] logFiles = new string[errorLogs.Length + transferLogs.Length + systemLogs.Length];
+
+                //Concatenate our 3 lists of log files into the master string array
+                errorLogs.CopyTo(logFiles, 0);
+                transferLogs.CopyTo(logFiles, errorLogs.Length);
+                systemLogs.CopyTo(logFiles, errorLogs.Length + transferLogs.Length);
+
+                try
+                {
+                    //Move all of our log files into the logs\tmp directory to prepare for zipping and archiving
+                    foreach (string logFile in logFiles)
+                    {
+                        string dest = GetLogArchivePath() + "tmp\\" + logFile.Split('\\')[logFile.Split('\\').Length - 1];
+                        File.Move(logFile, dest);
+                    } 
+                    
+                    //Zip the logs/tmp directory and name it with CurrentYear_CurrentMonth, place it in the root of "archived-logs" folder
+                    ZipFile.CreateFromDirectory(GetLogArchivePath() + "\\tmp\\", GetLogArchivePath() + DateTime.Now.ToString("yyyy") + "_" + DateTime.Now.ToString("MMMM") + "_LogArchive.zip");      
+                
+                }
+                catch (Exception)
+                {
+                    //History folder does not exist
+                    throw new InvalidDocumentDestinationPathException(GetLogArchivePath());
+                }
+                
+                return true;
+            }
             
         #endregion              
     }
