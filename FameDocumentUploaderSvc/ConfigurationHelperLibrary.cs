@@ -69,11 +69,21 @@ namespace FameDocumentUploaderSvc
             public static bool IsSendingEmailsAllowed()
             {
                 string stringBool = ConfigurationManager.AppSettings["EnableUploadEmails"].ToString();
-                bool a = Boolean.TryParse(stringBool, out bool allowSending);
+                Boolean.TryParse(stringBool, out bool allowSending);
 
                 return allowSending;
             }
 
+            //Get historical logs folder path from app.config
+            /// <summary>
+            /// Return path to folder where archived logs are kept
+            /// </summary>
+            /// <returns></returns>
+            public static string GetLogArchivePath()
+            {
+                return ConfigurationManager.AppSettings["ArchiveLogPath"].ToString();
+            }
+            
             //Get Error logs folder path from app.config
             /// <summary>
             /// Return path to folder where error logs are kept

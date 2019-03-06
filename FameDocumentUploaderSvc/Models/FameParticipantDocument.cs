@@ -44,6 +44,10 @@ namespace FameDocumentUploaderSvc.Models
             {
                 ValidEntity = true;
             }
+            else
+            {
+                ValidEntity = false;
+            }
 
             WacUploadUser = "FAME_uploader";
 
@@ -81,6 +85,7 @@ namespace FameDocumentUploaderSvc.Models
                 case 3:
                     {
                         this.PK3 = pkValue;
+                        finalStatus = true;
                         break;
                     }
 
@@ -101,7 +106,6 @@ namespace FameDocumentUploaderSvc.Models
         {
             FinalFilePath = $@"{ ConfigurationHelperLibrary.wacFarmHome }{ FarmID }\{ FinalSubPath }\{ DocumentName }";
         }
-
-    
+   
     }
 }
