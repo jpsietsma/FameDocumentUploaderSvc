@@ -377,35 +377,35 @@ namespace FameDocumentUploaderSvc
 
         #region Data Access Methods...
 
-        //Get the pk_farmBusiness by providing the corresponding Farm ID
-        /// <summary>
-        /// Get pk_farmBusiness for associated farm
-        /// </summary>
-        /// <param name="farmID">Farm ID </param>
-        /// <returns></returns>
-        public static int GetFarmBusinessByFarmId(string farmID)
-            {
-                int pk_FarmBusiness = 0;
-
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+            //Get the pk_farmBusiness by providing the corresponding Farm ID
+            /// <summary>
+            /// Get pk_farmBusiness for associated farm
+            /// </summary>
+            /// <param name="farmID">Farm ID </param>
+            /// <returns></returns>
+            public static int GetFarmBusinessByFarmId(string farmID)
                 {
+                    int pk_FarmBusiness = 0;
 
-                    try
+                    using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                     {
-                        cnn.Open();
-                        SqlCommand sql = new SqlCommand($@"SELECT pk_farmBusiness FROM dbo.farmBusiness WHERE farmID = '{ farmID }'", cnn);
-                        Int32 pkFarmBusiness = (Int32)sql.ExecuteScalar();
-                        pk_FarmBusiness = pkFarmBusiness;
-                    }
-                    catch (Exception e)
-                    {
-                        throw new InvalidDocumentEntityException(e, farmID);
+
+                        try
+                        {
+                            cnn.Open();
+                            SqlCommand sql = new SqlCommand($@"SELECT pk_farmBusiness FROM dbo.farmBusiness WHERE farmID = '{ farmID }'", cnn);
+                            Int32 pkFarmBusiness = (Int32)sql.ExecuteScalar();
+                            pk_FarmBusiness = pkFarmBusiness;
+                        }
+                        catch (Exception e)
+                        {
+                            throw new InvalidDocumentEntityException(e, farmID);
+                        }
+
                     }
 
+                    return pk_FarmBusiness;
                 }
-
-                return pk_FarmBusiness;
-            }
 
             //Get the pk_asrAg for document by ASR year
             /// <summary>
@@ -494,26 +494,16 @@ namespace FameDocumentUploaderSvc
                         //Otherwise get the participant ID from the database
                         if (numRows == 0)
                         {
-                            Console.WriteLine();
-                            Console.WriteLine("Unrecognized contractor name.  Please check the file name and try again.");
-                            Console.WriteLine();
-
                             return numRows;
                         }
                         else
                         {
-
                             baseQuery = $@"SELECT pk_participant FROM dbo.participant WHERE fullname_FL_dnd = '{ contractorPrefix }'";
                             sqlQuery = new SqlCommand(baseQuery, conn);
 
                             //get our participant id result from the query and parse it as an INT and set equal with finalParticipantID
                             var participantID = sqlQuery.ExecuteScalar();
                             int.TryParse(participantID.ToString(), out finalParticipantID);
-
-                            Console.WriteLine();
-                            Console.WriteLine($"Participant ID: { finalParticipantID }");
-                            Console.WriteLine();
-
                         }
                     }
                     catch (Exception e)
@@ -547,27 +537,27 @@ namespace FameDocumentUploaderSvc
 
             //Get WFP-3 Package PK by PackageName
             public static int GetWfp3PackagePkByPackageName(string packageName)
-            {
-                int finalPk = 0;
-
-                using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
                 {
-                    try
-                    {
-                        cnn.Open();
-                        SqlCommand sql = new SqlCommand($@"SELECT pk_form_wfp3 FROM dbo.form_wfp3 WHERE packageName = '{ packageName }'", cnn);
-                        Int32 pkWFP3Form = (Int32)sql.ExecuteScalar();
-                        finalPk = pkWFP3Form;
-                    }
-                    catch (Exception e)
-                    {
+                    int finalPk = 0;
 
-                        Console.WriteLine(e.Message);
+                    using (SqlConnection cnn = new SqlConnection(GetConnectionString()))
+                    {
+                        try
+                        {
+                            cnn.Open();
+                            SqlCommand sql = new SqlCommand($@"SELECT pk_form_wfp3 FROM dbo.form_wfp3 WHERE packageName = '{ packageName }'", cnn);
+                            Int32 pkWFP3Form = (Int32)sql.ExecuteScalar();
+                            finalPk = pkWFP3Form;
+                        }
+                        catch (Exception e)
+                        {
+                            WriteFameLog("error", e.Message);
+                        LogWindowsEvent(e.Message, EventLogEntryType.Error);
+                        }
                     }
+
+                    return finalPk;
                 }
-
-                return finalPk;
-            }
 
         #endregion
 
@@ -859,7 +849,7 @@ namespace FameDocumentUploaderSvc
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\ASRs", "A_ASR", baseDoc.DocumentType, false, true);
 
                         int? asrPK2 = null;
-                        int asrPK2_Year = DateTime.Now.Year;                      
+                        int asrPK2_Year = DateTime.Now.Year;                        
 
                         //Check the length of array of file name parts [ASR_DEC-xxx_????.pdf]
                         //If length is 2, ASR is for current year if its 3 then its a record for a prior year
@@ -872,6 +862,8 @@ namespace FameDocumentUploaderSvc
                         }
                         else if(e.Name.Split('_').Length == 2)
                         {
+                            int.TryParse(e.Name.Split('_')[1].Replace(@".pdf", ""), out asrPK2_Year);
+
                             asrPK2 = GetAsrPkByYear(asrPK2_Year, NewParticipantDocument.DocumentEntity);
                             NewParticipantDocument.AssignPK(2, asrPK2);
                         }                                
@@ -1148,8 +1140,13 @@ namespace FameDocumentUploaderSvc
                             }
                             catch (InvalidDocumentTypeException ex)
                             {
-                                //document the errors in the uploader logs and windows event log
+                                //document the errors in the uploader logs and windows event log and then send email notification of failure
                                 ex.LogUploaderException(ex.Message);
+
+                                if (IsSendingEmailsAllowed())
+                                {
+                                    SendFailedFileUploadEmail(e, ex.Message, DateTime.Now);
+                                }
                             }
 
                             break;                            
@@ -1207,49 +1204,46 @@ namespace FameDocumentUploaderSvc
                     WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + newDoc.FinalFilePath);
                     LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " has been " + e.ChangeType + " to FAME.  Database has been updated. ");
 
-                    Console.WriteLine(e.Name + " has been successfully uploaded to " + newDoc.FinalFilePath);
                 }
                 else
                 {
                     //Send email notification of failed upload
-                    SendUploadedFileEmail(e, newDoc.FinalFilePath, DateTime.Now, false, uploadError);
+                    SendFailedFileUploadEmail(e, uploadError, DateTime.Now);
 
-                    //Write failure messages to FAME log and Windows Event log
-                    WriteFameLog(e, "notice", " ", e.Name + " could not be uploaded to " + newDoc.FinalFilePath);
+                    //Write failure messages to Windows Event log
                     LogWindowsEvent(DateTime.Now.ToString() + " - " + e.Name + " could not be " + e.ChangeType + " to FAME.  No changes have been made. ");
 
-                    Console.WriteLine("File could not be uploaded, Please try again: ");
-                    Console.WriteLine($@"{ uploadError }");
                 }
 
             }        
 
-            //Process when file dropped matches file already in database
-            /// <summary>
-            /// Process when a duplicate document is dropped
-            /// </summary>
-            /// <param name="doc">Duplicate document IFameDocument object</param>
-            public static void ProcessDuplicateFile(IFameDocument doc, bool allow = false)
-            {
+            ////Process when file dropped matches file already in database
+            ///// <summary>
+            ///// Process when a duplicate document is dropped
+            ///// </summary>
+            ///// <param name="doc">Duplicate document IFameDocument object</param>
+            //public static void ProcessDuplicateFile(IFameDocument doc, bool allow = false)
+            //{
 
-                if (!allow)
-                {
-                    //Add logic for duplicate processing including both allowed and disallowed
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Uploader found this file exists in the database already.  Filetype does not allow duplicates.  Please check the name and try again.");
-                    Console.ResetColor();
-                    Console.WriteLine();
-                }
-                else
-                {
+            //    if (!allow)
+            //    {
+            //        //Add logic for duplicate processing including both allowed and disallowed
+            //        Console.ForegroundColor = ConsoleColor.Red;
+            //        Console.WriteLine("Uploader found this file exists in the database already.  Filetype does not allow duplicates.  Please check the name and try again.");
+            //        Console.ResetColor();
+            //        Console.WriteLine();
+            //    }
+            //    else
+            //    {
 
                     
 
-                }                
+            //    }                
 
-            }
+            //}
 
             //Archive all logs, i.e. error, system, and transfer by zipping and placing in logs/archived-logs/<Year>_<monthName>.zip
+
             /// <summary>
             /// Archive the system, error, and transfer log files by zipping them up and moving them to "logs/archived-logs/<YEAR>_<MONTH>.zip"
             /// </summary>
