@@ -98,5 +98,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup />
+  <ItemGroup>
+    <Content Include="MailTemplates\EmailDuplicateTemplate.html" />
+    <Content Include="MailTemplates\EmailErrorTemplate.html" />
+    <Content Include="MailTemplates\EmailSummaryTemplate.html" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

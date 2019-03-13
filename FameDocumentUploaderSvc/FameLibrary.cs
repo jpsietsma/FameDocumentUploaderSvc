@@ -573,9 +573,9 @@ namespace FameDocumentUploaderSvc
 
         #region Email Configuration Methods...
 
-            //Sends a notification email to uploader when a duplicate file upload is attempted
+            //Sends a notification email to uploader when a file is uploaded
             /// <summary>
-            /// Send notification email when duplicate file upload is attempted
+            /// Send notification email when a file is uploaded
             /// </summary>
             /// <param name="arg">FileSystemWatcher event to email about</param>
             /// <param name="uFinalPath">Final path to the uploaded file</param>
@@ -587,7 +587,7 @@ namespace FameDocumentUploaderSvc
             {
                 bool sendSuccess = true;
 
-                //If enabled, build and sent failure email
+                //If enabled, build and send email
                 if (IsSendingEmailsAllowed())
                 {                
                     string mailRecipient = username;
@@ -632,6 +632,65 @@ namespace FameDocumentUploaderSvc
 
                 return sendSuccess;    
             }
+            
+            //Sends a notification email to uploader when a duplicate file upload is attempted
+            /// <summary>
+            /// Send notification email when duplicate file upload is attempted
+            /// </summary>
+            /// <param name="arg">FileSystemWatcher event to email about</param>
+            /// <param name="uFinalPath">Final path to the uploaded file</param>
+            /// <param name="uDocUploadTime">Time document was uploaded</param>
+            /// <param name="mailType">Type of email to send (single vs multiple files)</param>
+            /// <param name="username">Email Address to send notification to</param>
+            /// <returns>true or false on success or fail of sending email</returns>
+            public static bool SendFailedFileUploadEmail(FileSystemEventArgs arg, string errorMessage, DateTime uploadTime)
+            {
+                bool sendSuccess = true;
+
+                //If enabled, build and send failure email
+                if (IsSendingEmailsAllowed())
+                {           
+                    SmtpClient smtp = new SmtpClient(smtpHost, smtpPort)
+                    {
+                        UseDefaultCredentials = false,
+                        Credentials = new NetworkCredential(smtpUser, smtpPass),
+                        Host = smtpHost,
+                        EnableSsl = false,
+                        Port = smtpPort
+                    };
+
+                    MailMessage messageObj = new MailMessage();
+
+                    //code to build and send email to recipient list
+                    //messageObj.To.Add(mailRecipient);
+                    messageObj.To.Add(new MailAddress("jsietsma@nycwatershed.org"));
+                    messageObj.Bcc.Add(new MailAddress("famedocs@nycwatershed.org"));
+                    //messageObj.Bcc.Add(new MailAddress("jjackson@nycwatershed.org"));
+
+                    messageObj.From = new MailAddress(smtpUserEmail);
+                    messageObj.IsBodyHtml = true;
+                    messageObj.Subject = "Error Uploading: " + arg.Name;
+                    messageObj.Body = CreateEmailBody(arg, errorMessage, uploadTime);
+
+                    try
+                    {
+                        smtp.Send(messageObj);
+                    }
+                    catch (SmtpFailedRecipientException ex)
+                    {
+                        WriteFameLog("error", "Unable to send upload failure email - <Recipient_error>: " + ex.InnerException);
+                        sendSuccess = false;
+                    }
+                    catch (SmtpException ex)
+                    {
+                        WriteFameLog("error", "Unable to send upload failure email: " + ex.InnerException);
+                        sendSuccess = false;
+                    }
+                }
+
+                return sendSuccess;    
+            }
+
 
             //Build the email body with placeholders for data, defined by type of mailing 'single', 'summary', or 'duplicate'
             /// <summary>
@@ -705,6 +764,36 @@ namespace FameDocumentUploaderSvc
 
                 return body;
 
+            }
+
+            //Build the email body for a failed upload attempt
+            /// <summary>
+            /// Build body of email to send on file upload with placeholders
+            /// </summary>
+            /// <param name="args">FileSystemWatcher arguments from the file drop</param>
+            /// <param name="uFinalPath">Final path to uploaded file</param>
+            /// <param name="uDocUploadTime">Time document was uploaded</param>
+            /// <param name="mailType">type of email to send (single or multiple files uploaded)</param>
+            /// <returns>HTML body of the email to send</returns>
+            public static string CreateEmailBody(FileSystemEventArgs args, string errorMessage, DateTime uploadTime)
+            {
+                string farmID = args.Name.Split('_')[1];
+
+                string message = String.Empty;
+
+                string body = message;
+
+                using (StreamReader reader = new StreamReader("../../EmailSingleTemplate.html"))
+                {
+                    body = reader.ReadToEnd();
+
+                    body = body.Replace("~FarmID~", farmID);
+                    body = body.Replace("~FileName~", args.Name);
+                    body = body.Replace("~uDocUploadTime~", uploadTime.ToString());
+
+                }
+
+                return body;
             }
 
         #endregion
