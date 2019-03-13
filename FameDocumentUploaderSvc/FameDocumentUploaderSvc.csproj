@@ -100,6 +100,7 @@
   <ItemGroup />
   <ItemGroup>
     <Content Include="MailTemplates\EmailDuplicateTemplate.html" />
+    <Content Include="MailTemplates\EmailSingleTemplate.html" />
     <Content Include="MailTemplates\EmailErrorTemplate.html" />
     <Content Include="MailTemplates\EmailSummaryTemplate.html" />
   </ItemGroup>

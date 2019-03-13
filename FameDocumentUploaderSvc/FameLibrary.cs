@@ -715,7 +715,7 @@ namespace FameDocumentUploaderSvc
                     case "single":
                         {
 
-                            using (StreamReader reader = new StreamReader("../../EmailSingleTemplate.html"))
+                            using (StreamReader reader = new StreamReader("MailTemplates/EmailSingleTemplate.html"))
                             {
                                 body = reader.ReadToEnd();
 
@@ -733,7 +733,7 @@ namespace FameDocumentUploaderSvc
                     case "summary":
                         {
 
-                            using (StreamReader reader = new StreamReader("../../EmailSummaryTemplate.html"))
+                            using (StreamReader reader = new StreamReader("MailTemplates/EmailSummaryTemplate.html"))
                             {
 
                                 body = reader.ReadToEnd();
@@ -747,7 +747,7 @@ namespace FameDocumentUploaderSvc
                     case "duplicate":
                         {
 
-                            using (StreamReader reader = new StreamReader("../../EmailDuplicateTemplate.html"))
+                            using (StreamReader reader = new StreamReader("MailTemplates/EmailDuplicateTemplate.html"))
                             {
                                 body = reader.ReadToEnd();
 
@@ -783,7 +783,7 @@ namespace FameDocumentUploaderSvc
 
                 string body = message;
 
-                using (StreamReader reader = new StreamReader("../../EmailSingleTemplate.html"))
+                using (StreamReader reader = new StreamReader("MailTemplates/EmailErrorTemplate.html"))
                 {
                     body = reader.ReadToEnd();
 
