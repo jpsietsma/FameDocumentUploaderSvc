@@ -399,6 +399,8 @@ namespace FameDocumentUploaderSvc
                         }
                         catch (Exception e)
                         {
+                            WriteFameLog("error", e.Message);
+                            SendFailedFileUploadEmail(farmID, "Filename contains an invalid Farm ID", DateTime.Now);
                             throw new InvalidDocumentEntityException(e, farmID);
                         }
 
@@ -573,7 +575,7 @@ namespace FameDocumentUploaderSvc
             /// <param name="mailType">Type of email to send (single vs multiple files)</param>
             /// <param name="username">Email Address to send notification to</param>
             /// <returns>true or false on success or fail of sending email</returns>
-            public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, bool wasSuccessful = true, string errorMessage = null, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
+            public static bool SendUploadedFileEmail(FileSystemEventArgs arg, string uFinalPath, DateTime uDocUploadTime, bool wasSuccessful, string errorMessage = null, string mailType = "single", string username = @"jsietsma@nycwatershed.org")
             {
                 bool sendSuccess = true;
 
@@ -623,7 +625,7 @@ namespace FameDocumentUploaderSvc
                 return sendSuccess;    
             }
             
-            //Sends a notification email to uploader when a duplicate file upload is attempted
+            //Sends a notification email to uploader when a failed file upload is attempted
             /// <summary>
             /// Send notification email when duplicate file upload is attempted
             /// </summary>
@@ -681,6 +683,63 @@ namespace FameDocumentUploaderSvc
                 return sendSuccess;    
             }
 
+            //Sends a notification email to uploader when a failed file upload is attempted with an invalid FarmID
+            /// <summary>
+            /// Send notification email when duplicate file upload is attempted
+            /// </summary>
+            /// <param name="farmID">Farm Id that was passed</param>
+            /// <param name="uFinalPath">Final path to the uploaded file</param>
+            /// <param name="uDocUploadTime">Time document was uploaded</param>
+            /// <param name="mailType">Type of email to send (single vs multiple files)</param>
+            /// <param name="username">Email Address to send notification to</param>
+            /// <returns>true or false on success or fail of sending email</returns>
+            public static bool SendFailedFileUploadEmail(string farmID, string errorMessage, DateTime uploadTime)
+            {
+                bool sendSuccess = true;
+
+                //If enabled, build and send failure email
+                if (IsSendingEmailsAllowed())
+                {           
+                    SmtpClient smtp = new SmtpClient(smtpHost, smtpPort)
+                    {
+                        UseDefaultCredentials = false,
+                        Credentials = new NetworkCredential(smtpUser, smtpPass),
+                        Host = smtpHost,
+                        EnableSsl = false,
+                        Port = smtpPort
+                    };
+
+                    MailMessage messageObj = new MailMessage();
+
+                    //code to build and send email to recipient list
+                    //messageObj.To.Add(mailRecipient);
+                    messageObj.To.Add(new MailAddress("jsietsma@nycwatershed.org"));
+                    messageObj.Bcc.Add(new MailAddress("famedocs@nycwatershed.org"));
+                    //messageObj.Bcc.Add(new MailAddress("jjackson@nycwatershed.org"));
+
+                    messageObj.From = new MailAddress(smtpUserEmail);
+                    messageObj.IsBodyHtml = true;
+                    messageObj.Subject = "Error Uploading File - Invalid Farm ID: " + farmID;
+                    messageObj.Body = CreateEmailBody(farmID, errorMessage, uploadTime);
+
+                    try
+                    {
+                        smtp.Send(messageObj);
+                    }
+                    catch (SmtpFailedRecipientException ex)
+                    {
+                        WriteFameLog("error", "Unable to send upload failure email - <Recipient_error>: " + ex.InnerException);
+                        sendSuccess = false;
+                    }
+                    catch (SmtpException ex)
+                    {
+                        WriteFameLog("error", "Unable to send upload failure email: " + ex.InnerException);
+                        sendSuccess = false;
+                    }
+                }
+
+                return sendSuccess;    
+            }
 
             //Build the email body with placeholders for data, defined by type of mailing 'single', 'summary', or 'duplicate'
             /// <summary>
@@ -773,12 +832,40 @@ namespace FameDocumentUploaderSvc
 
                 string body = message;
 
-                using (StreamReader reader = new StreamReader("MailTemplates/EmailErrorTemplate.html"))
+                using (StreamReader reader = new StreamReader(@"C:\Users\jsietsma\OneDrive\GitHub\FameDocumentUploaderSvc\FameDocumentUploaderSvc\MailTemplates\EmailErrorTemplate.html"))
                 {
                     body = reader.ReadToEnd();
 
                     body = body.Replace("~FarmID~", farmID);
                     body = body.Replace("~FileName~", args.Name);
+                    body = body.Replace("~uDocUploadTime~", uploadTime.ToString());
+
+                }
+
+                return body;
+            }
+
+            //Build the email body for a failed upload attempt without filename
+            /// <summary>
+            /// Build body of email to send on file upload with placeholders
+            /// </summary>
+            /// <param name="args">FileSystemWatcher arguments from the file drop</param>
+            /// <param name="uFinalPath">Final path to uploaded file</param>
+            /// <param name="uDocUploadTime">Time document was uploaded</param>
+            /// <param name="mailType">type of email to send (single or multiple files uploaded)</param>
+            /// <returns>HTML body of the email to send</returns>
+            public static string CreateEmailBody(string farmID, string errorMessage, DateTime uploadTime)
+            {
+                string message = String.Empty;
+
+                string body = message;
+
+                using (StreamReader reader = new StreamReader(@"C:\Users\jsietsma\OneDrive\GitHub\FameDocumentUploaderSvc\FameDocumentUploaderSvc\MailTemplates\EmailErrorTemplate.html"))
+                {
+                    body = reader.ReadToEnd();
+
+                    body = body.Replace("~FarmID~", farmID);
+                    body = body.Replace("~ErrorText~", errorMessage);
                     body = body.Replace("~uDocUploadTime~", uploadTime.ToString());
 
                 }
@@ -803,7 +890,8 @@ namespace FameDocumentUploaderSvc
                 switch (baseDoc.DocumentType)
                 {
 
-                    #region WAC Participant Document Types...
+                #region WAC Participant Document Types...
+
                     case "ASBUILT":
                     {
                         FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\As-Builts and Procurement", "", baseDoc.DocumentType);
@@ -833,7 +921,7 @@ namespace FameDocumentUploaderSvc
 
                     case "ALTR":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,WFP-1,WFP-2\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
 
                         //Attempt to check FameDB for existing file
                         NewParticipantDocument.AddFameDoc(out string error);
@@ -881,7 +969,7 @@ namespace FameDocumentUploaderSvc
 
                     case "COS":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2, COS\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,WFP-1,WFP-2\COS", "A_OVERFORM", baseDoc.DocumentType, false, false);
 
                         //Attempt to update the database with the appropriate information
                         NewParticipantDocument.AddFameDoc(out string error);
@@ -995,7 +1083,7 @@ namespace FameDocumentUploaderSvc
                     case "WFP0":
                     case "WFP-0":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-0", "A_OVERFORM", @"WFP-0", true, false);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,WFP-1,WFP-2\WFP-0", "A_OVERFORM", @"WFP-0", true, false);
 
                         //Attempt to update the database with the appropriate information
                         NewParticipantDocument.AddFameDoc(out string error);
@@ -1009,7 +1097,7 @@ namespace FameDocumentUploaderSvc
                     case "WFP1":
                     case "WFP-1":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-1", "A_OVERFORM", @"WFP-1", true, false);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,WFP-1,WFP-2\WFP-1", "A_OVERFORM", @"WFP-1", true, false);
 
                         //Attempt to update the database with the appropriate information
                         NewParticipantDocument.AddFameDoc(out string error);
@@ -1023,7 +1111,7 @@ namespace FameDocumentUploaderSvc
                     case "WFP2":
                     case "WFP-2":
                     {
-                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,1,2 COS\WFP-2", "A_WFP2", @"WFP-2", true, false);
+                        FameParticipantDocument NewParticipantDocument = baseDoc.ConvertToParticipantDocument(e, @"Final Documentation\WFP-0,WFP-1,WFP-2\WFP-2", "A_WFP2", @"WFP-2", true, false);
 
                         //Attempt to update the database with the appropriate information
                         NewParticipantDocument.AddFameDoc(out string error);
@@ -1059,8 +1147,11 @@ namespace FameDocumentUploaderSvc
 
                         break;
                     }
+                #endregion
 
-                    case "GeneralLiability":
+                #region WAC Contractor Doc Types
+
+                case "GeneralLiability":
                     case "LIABILITY":
                     case "CERTLIAB":
                     {
@@ -1068,11 +1159,11 @@ namespace FameDocumentUploaderSvc
 
                         if (NewLiabilityDocument.DetermineDocEntityType(out bool validEntity) == "participant" && validEntity)
                         {
-                            NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
+                            NewLiabilityDocument = NewLiabilityDocument.ConvertToParticipantDocument(e, "General Liability", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else if (NewLiabilityDocument.DetermineDocEntityType(out validEntity) == "contractor" && validEntity)
                         {
-                            NewLiabilityDocument = NewLiabilityDocument.ConvertToContractorDocument(e, "W-9", "PART_OVER", baseDoc.DocumentType, false, true);
+                            NewLiabilityDocument = NewLiabilityDocument.ConvertToContractorDocument(e, "General Liability", "PART_OVER", baseDoc.DocumentType, false, true);
                         }
                         else
                         {
@@ -1198,7 +1289,7 @@ namespace FameDocumentUploaderSvc
                 if (UploadFile(newDoc, out string uploadError))
                 {
                     //Send email notification of successful upload
-                    SendUploadedFileEmail(e, newDoc.FinalFilePath, DateTime.Now);
+                    SendUploadedFileEmail(e, newDoc.FinalFilePath, DateTime.Now, true);
 
                     //Write success messages to FAME log and Windows Event log
                     WriteFameLog(e, "notice", " ", e.Name + " has been successfully uploaded to " + newDoc.FinalFilePath);
@@ -1217,33 +1308,7 @@ namespace FameDocumentUploaderSvc
 
             }        
 
-            ////Process when file dropped matches file already in database
-            ///// <summary>
-            ///// Process when a duplicate document is dropped
-            ///// </summary>
-            ///// <param name="doc">Duplicate document IFameDocument object</param>
-            //public static void ProcessDuplicateFile(IFameDocument doc, bool allow = false)
-            //{
-
-            //    if (!allow)
-            //    {
-            //        //Add logic for duplicate processing including both allowed and disallowed
-            //        Console.ForegroundColor = ConsoleColor.Red;
-            //        Console.WriteLine("Uploader found this file exists in the database already.  Filetype does not allow duplicates.  Please check the name and try again.");
-            //        Console.ResetColor();
-            //        Console.WriteLine();
-            //    }
-            //    else
-            //    {
-
-                    
-
-            //    }                
-
-            //}
-
             //Archive all logs, i.e. error, system, and transfer by zipping and placing in logs/archived-logs/<Year>_<monthName>.zip
-
             /// <summary>
             /// Archive the system, error, and transfer log files by zipping them up and moving them to "logs/archived-logs/<YEAR>_<MONTH>.zip"
             /// </summary>
