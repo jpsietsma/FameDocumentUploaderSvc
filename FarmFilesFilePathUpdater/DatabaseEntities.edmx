@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="WacDatabaseEntities.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="documentArchive">
+          <Key>
+            <PropertyRef Name="pk_documentArchive" />
+          </Key>
+          <Property Name="pk_documentArchive" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PK_1" Type="int" Nullable="false" />
+          <Property Name="PK_2" Type="int" />
+          <Property Name="PK_3" Type="int" />
+          <Property Name="filename_actual" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="fk_participantTypeSectorFolder_code" Type="nvarchar" MaxLength="12" />
+          <Property Name="created" Type="datetime" Nullable="false" />
+          <Property Name="created_by" Type="nvarchar" MaxLength="36" Nullable="false" />
+          <Property Name="modified" Type="datetime" />
+          <Property Name="modified_by" Type="nvarchar" MaxLength="36" />
+          <Property Name="filename_display" Type="nvarchar" MaxLength="255" />
+          <Property Name="filepath" Type="nvarchar" MaxLength="255" />
+        </EntityType>
+        <EntityContainer Name="WacDatabaseEntitiesStoreContainer">
+          <EntitySet Name="documentArchive" EntityType="Self.documentArchive" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="WacDatabaseEntities" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="documentArchive">
+          <Key>
+            <PropertyRef Name="pk_documentArchive" />
+          </Key>
+          <Property Name="pk_documentArchive" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PK_1" Type="Int32" Nullable="false" />
+          <Property Name="PK_2" Type="Int32" />
+          <Property Name="PK_3" Type="Int32" />
+          <Property Name="filename_actual" Type="String" MaxLength="255" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="fk_participantTypeSectorFolder_code" Type="String" MaxLength="12" FixedLength="false" Unicode="true" />
+          <Property Name="created" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="created_by" Type="String" MaxLength="36" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="modified" Type="DateTime" Precision="3" />
+          <Property Name="modified_by" Type="String" MaxLength="36" FixedLength="false" Unicode="true" />
+          <Property Name="filename_display" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="filepath" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityContainer Name="DatabaseEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="documentArchive" EntityType="Self.documentArchive" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="WacDatabaseEntitiesStoreContainer" CdmEntityContainer="DatabaseEntities">
+          <EntitySetMapping Name="documentArchive">
+            <EntityTypeMapping TypeName="WacDatabaseEntities.documentArchive">
+              <MappingFragment StoreEntitySet="documentArchive">
+                <ScalarProperty Name="pk_documentArchive" ColumnName="pk_documentArchive" />
+                <ScalarProperty Name="PK_1" ColumnName="PK_1" />
+                <ScalarProperty Name="PK_2" ColumnName="PK_2" />
+                <ScalarProperty Name="PK_3" ColumnName="PK_3" />
+                <ScalarProperty Name="filename_actual" ColumnName="filename_actual" />
+                <ScalarProperty Name="fk_participantTypeSectorFolder_code" ColumnName="fk_participantTypeSectorFolder_code" />
+                <ScalarProperty Name="created" ColumnName="created" />
+                <ScalarProperty Name="created_by" ColumnName="created_by" />
+                <ScalarProperty Name="modified" ColumnName="modified" />
+                <ScalarProperty Name="modified_by" ColumnName="modified_by" />
+                <ScalarProperty Name="filename_display" ColumnName="filename_display" />
+                <ScalarProperty Name="filepath" ColumnName="filepath" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="false" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

@@ -11,6 +11,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentImporter", "Documen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateDocumentStructure", "UpdateDocumentStructure\UpdateDocumentStructure.csproj", "{C5DE023C-DD68-4684-B869-E312357B6667}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateContractorDocumentStructure", "UpdateContractorDocumentStructure\UpdateContractorDocumentStructure.csproj", "{DD4DD069-178A-4883-AF9F-079CBB3691EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FarmFilesFilePathUpdater", "FarmFilesFilePathUpdater\FarmFilesFilePathUpdater.csproj", "{7951FB51-B5EF-4314-B905-18788D662B57}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContractorFilePathUpdater", "ContractorFilesFarmPathUpdater\ContractorFilePathUpdater.csproj", "{F345DEED-7574-4882-8D85-8F5325AF315C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FarmDocumentFilepathUpdater", "FarmDocumentFilepathUpdater\FarmDocumentFilepathUpdater.csproj", "{5B6834ED-424A-4418-ACE7-7273B1A6EAD3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "old_doc_scanner", "old_doc_scanner", "{BAE86964-8F42-4A8B-9DE9-A36539B73536}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportFarmDocs", "ImportFarmDocs\ImportFarmDocs.csproj", "{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,9 +45,32 @@ Global
 		{C5DE023C-DD68-4684-B869-E312357B6667}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5DE023C-DD68-4684-B869-E312357B6667}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5DE023C-DD68-4684-B869-E312357B6667}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD4DD069-178A-4883-AF9F-079CBB3691EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD4DD069-178A-4883-AF9F-079CBB3691EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD4DD069-178A-4883-AF9F-079CBB3691EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD4DD069-178A-4883-AF9F-079CBB3691EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7951FB51-B5EF-4314-B905-18788D662B57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7951FB51-B5EF-4314-B905-18788D662B57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7951FB51-B5EF-4314-B905-18788D662B57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7951FB51-B5EF-4314-B905-18788D662B57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F345DEED-7574-4882-8D85-8F5325AF315C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F345DEED-7574-4882-8D85-8F5325AF315C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F345DEED-7574-4882-8D85-8F5325AF315C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F345DEED-7574-4882-8D85-8F5325AF315C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B6834ED-424A-4418-ACE7-7273B1A6EAD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B6834ED-424A-4418-ACE7-7273B1A6EAD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B6834ED-424A-4418-ACE7-7273B1A6EAD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B6834ED-424A-4418-ACE7-7273B1A6EAD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A81A942-F8FB-4B2D-A6AE-1AEF14ACD4C6} = {BAE86964-8F42-4A8B-9DE9-A36539B73536}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4A73FF4D-A749-44E6-ADA7-AC615EB2F6D9}

@@ -11,6 +11,7 @@ using static FameDocumentUploaderSvc.ConfigurationHelperLibrary;
 using System.Threading.Tasks;
 using System.IO.Compression;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FameDocumentUploaderSvc
 {
@@ -1350,7 +1351,47 @@ namespace FameDocumentUploaderSvc
                 
                 return true;
             }
-                       
-        #endregion              
+
+        #endregion
+
+        #region Contractor Document Methods
+
+            /// <summary>
+            /// Scans document folder and creates folders for all contractors with the appropriate directory structure
+            /// </summary>
+            public static void UpdateContractorFoldersFromDocuments()
+            {
+                string NewContractorDocHome = @"J:\CONTRACTORS\Contractor_docs\";
+                string OldContractorDocHome = @"Y:\FAMEDOCS\PART\";
+
+                string TmpContractorDocHome = @"J:\CONTRACTORS\Contractor_docs\~GeneratedDocs\";
+
+                List<string> list_contractorFolders = Directory.GetDirectories(NewContractorDocHome).ToList();
+
+                List<string> list_contractorDocs = Directory.GetFiles(OldContractorDocHome).ToList();
+
+                List<string> list_tmpFiles = new List<string>();
+
+                foreach (string _filename in list_contractorDocs)
+                {
+                    string tmpName = _filename.Split('\\').Last();
+                    string[] nameparts = tmpName.Split('_');
+                    string DocType = nameparts[0];
+                    string DocEntity = nameparts[1].Split('.')[0];
+
+                    if (DocType == "CERTLIAB" || DocType == "IRSW9" || DocType == "WORKCOMP")
+                    {
+                        if (!Directory.Exists(TmpContractorDocHome + DocEntity))
+                        {
+                            string sourceStr = NewContractorDocHome + "~NewContractorTemplate";
+                            string destStr = TmpContractorDocHome + DocEntity;
+
+                            new Microsoft.VisualBasic.Devices.Computer().FileSystem.CopyDirectory(sourceStr, destStr);
+                        }
+                    }
+                }
+            }
+
+        #endregion
     }
 }

@@ -69,6 +69,7 @@ namespace DocumentImporter.ImportLib
                         case "WFP5M":
                         case "WFP5C":
                         case "WFP4":
+                        case "WFP0":
                             {
                                 docFinalPath = "--Ignored--";
 
@@ -91,14 +92,6 @@ namespace DocumentImporter.ImportLib
                                 break;
                             }
 
-                        case "ALTR":
-                            {
-                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-0,WFP-1,WFP-2\COS\{ filename }";
-                                CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
-
-                                break;
-                            }
-
                         case "ASR":
                             {
                                 docFinalPath = $@"{ docEntity }\Final Documentation\ASRs\{ filename }";
@@ -109,7 +102,7 @@ namespace DocumentImporter.ImportLib
 
                         case "COS":
                             {
-                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-0,WFP-1,WFP-2\COS\{ filename }";
+                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-1, WFP-2, COS\COS\{ filename }";
                                 CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
 
                                 break;
@@ -117,6 +110,7 @@ namespace DocumentImporter.ImportLib
 
                         case "CORR":
                         case "DR":
+                        case "ALTR":
                             {
                                 docFinalPath = $@"{ docEntity }\Correspondence\{ filename }";
                                 CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
@@ -126,7 +120,7 @@ namespace DocumentImporter.ImportLib
 
                         case "CRP1":
                             {
-                                docFinalPath = $@"{ docEntity }\Procurement\CREP\{ filename }";
+                                docFinalPath = $@"{ docEntity }\Final Documentation\As-Builts and Procurement\CREP\{ filename }";
                                 CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
 
                                 break;
@@ -183,19 +177,10 @@ namespace DocumentImporter.ImportLib
                                 break;
                             }
 
-                        case "WFP0":
-                        case "WFP-0":
-                            {
-                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-0,WFP-1,WFP-2\WFP-0\{ filename }";
-                                CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
-
-                                break;
-                            }
-
                         case "WFP1":
                         case "WFP-1":
                             {
-                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-0,WFP-1,WFP-2\WFP-1\{ filename }";
+                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-1, WFP-2, COS\WFP-1\{ filename }";
                                 CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
 
                                 break;
@@ -205,7 +190,7 @@ namespace DocumentImporter.ImportLib
                         case "WFP-2":
                         case "WFP2RS":
                             {
-                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-0,WFP-1,WFP-2\WFP-2\{ filename }";
+                                docFinalPath = $@"{ docEntity }\Final Documentation\WFP-1, WFP-2, COS\WFP-2\{ filename }";
                                 CopyFileToArchives(new FileInfo(ConfigurationManager.AppSettings["OldDocumentDirectory"] + filename), docFinalPath);
 
                                 break;
@@ -254,6 +239,8 @@ namespace DocumentImporter.ImportLib
                         default:
                             {
                                 docFinalPath = "-- Ignored --";
+                                filename = null;
+
                                 break;
                             }
                     }
@@ -275,30 +262,36 @@ namespace DocumentImporter.ImportLib
         /// <returns>true if update successful</returns>
         public static void UpdateDocumentFilepath(string filename, string newPath, out bool IsSuccessful)
         {
-            using (SqlConnection conn = new SqlConnection(@"Data Source=POTOKTEST;Initial Catalog=wactest;Persist Security Info=True;User ID=gisadmin;Password=gis10admin"))
+            if (!string.IsNullOrEmpty(filename))
             {
-                conn.Open();
-                IsSuccessful = false;
-
-                string sqlUpdate = $@"SET NOCOUNT OFF; UPDATE dbo.DocumentArchive SET filepath = '{ newPath }' WHERE filename_actual = '{ filename }' ";
-
-                SqlCommand sql = new SqlCommand(sqlUpdate, conn);
-
-                int results = sql.ExecuteNonQuery();
-
-                if (newPath != null)
+                using (SqlConnection conn = new SqlConnection(@"Data Source=POTOK\MSSQLSERVER2012;Initial Catalog=wac;Trusted_Connection=True"))
                 {
-                    IsSuccessful = true;
-                }                
-            }
+                    conn.Open();
+                    IsSuccessful = false;
 
+                    string sqlUpdate = $@"SET NOCOUNT OFF; UPDATE dbo.DocumentArchive SET filepath = '{ newPath }' WHERE filename_actual = '{ filename }' ";
+
+                    SqlCommand sql = new SqlCommand(sqlUpdate, conn);
+
+                    int results = sql.ExecuteNonQuery();
+
+                    if (newPath != null)
+                    {
+                        IsSuccessful = true;
+                    }
+                }
+            }
+            else
+            {
+                IsSuccessful = false;
+            }         
         }
 
         /// <summary>
-        /// Copy the file from the archives to the destination path
+        /// Copy the file from the old famedocs directory into the new J:/Farms structure
         /// </summary>
-        /// <param name="file"></param>
-        /// <param name="destinationPath"></param>
+        /// <param name="file">File to move</param>
+        /// <param name="destinationPath">Final destination filepath of moved file</param>
         /// <returns></returns>
         public static bool CopyFileToArchives(FileInfo file, string destinationPath, string entityType = "participant")
         {
@@ -309,10 +302,19 @@ namespace DocumentImporter.ImportLib
                 if (entityType == "participant")
                 {
                     finalDest = ConfigurationManager.AppSettings["FarmDocsHome"].ToString() + destinationPath;
-                    //file.CopyTo(finalDest);
+
                     if (!File.Exists(finalDest))
                     {
-                        File.Copy(file.FullName, finalDest);
+                        try
+                        {
+                            File.Copy(file.FullName, finalDest);
+                        }
+                        catch (Exception ex)
+                        {
+
+                            Console.WriteLine(ex.Message);
+                            Console.ReadLine();
+                        }
                     }
                     
                 }
